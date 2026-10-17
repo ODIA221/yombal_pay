@@ -73,7 +73,7 @@ export default function Caisse() {
           {num(value)} <small>FCFA</small>
         </div>
         <span className="pos-sats">
-          <Bolt size={14} /> {rate && value ? `${num(Math.ceil((value / rate.xof_per_btc) * 1e8))} sats` : '—'}
+          <Bolt size={14} /> {rate && value ? `${num(Math.ceil((value / rate.xof_per_btc) * 1e8))} sats` : '0 sats'}
         </span>
       </div>
 
@@ -119,7 +119,7 @@ function ChargeScreen({ c, onDone, onUpdate }) {
         </div>
         <h2>Paiement reçu</h2>
         <p className="pos-paid-amount">{fcfa(c.amount)}</p>
-        <p className="muted">{num(c.amount_sats)} sats · crédités sur votre solde</p>
+        <p className="muted">{num(c.amount_sats)} sats crédités sur votre solde</p>
         <button className="btn primary xl wide" onClick={onDone}>
           Nouvelle vente
         </button>

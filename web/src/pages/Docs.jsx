@@ -24,7 +24,7 @@ export default function Docs() {
       <Code lang="node.js">{`import YombalPay from 'yombalpay';
 
 const tp = new YombalPay({
-  apiKey: process.env.YOMBALPAY_SECRET_KEY,   // sk_… — jamais dans le navigateur
+  apiKey: process.env.YOMBALPAY_SECRET_KEY,   // sk_…, jamais dans le navigateur
   baseUrl: '${origin}',
 });
 
@@ -58,13 +58,13 @@ app.post('/commander', async (req, res) => {
           </thead>
           <tbody>
             {[
-              ['POST', '/v1/checkouts', 'Créer un paiement (montant FCFA, référence idempotente, URL de retour, URL de webhook) — clé sk_ ou pk_'],
-              ['GET', '/v1/checkouts', 'Lister vos paiements + statistiques — clé sk_'],
+              ['POST', '/v1/checkouts', 'Créer un paiement (montant FCFA, référence idempotente, URL de retour, URL de webhook) (clé sk_ ou pk_)'],
+              ['GET', '/v1/checkouts', 'Lister vos paiements et leurs statistiques (clé sk_)'],
               ['GET', '/v1/checkouts/:id', "Lire le statut d'un paiement"],
               ['GET', '/v1/checkouts/:id/stream', 'Statut en temps réel (Server-Sent Events)'],
-              ['POST', '/v1/payment-links', 'Créer un lien de paiement partageable — clé sk_'],
-              ['GET', '/v1/overview', 'Solde (BTC, USDT, total FCFA), statistiques, derniers paiements — clé sk_'],
-              ['GET', '/v1/ledger', 'Registre comptable : paiements, commissions, conversions, retraits — clé sk_'],
+              ['POST', '/v1/payment-links', 'Créer un lien de paiement partageable (clé sk_)'],
+              ['GET', '/v1/overview', 'Solde (BTC, USDT, total FCFA), statistiques, derniers paiements (clé sk_)'],
+              ['GET', '/v1/ledger', 'Registre comptable : paiements, commissions, conversions, retraits (clé sk_)'],
               ['GET', '/v1/rates', 'Taux BTC → FCFA et sa source'],
               ['GET', '/.well-known/lnurlp/:identifiant', 'Adresse Lightning du marchand (LUD-16 / LNURL-pay)'],
               ['GET', '/@:identifiant', 'Page de paiement publique à montant libre'],
@@ -102,7 +102,7 @@ app.post('/commander', async (req, res) => {
       <h2>Sécurité</h2>
       <ul className="bullets">
         <li>Les clés Bitnob ne quittent jamais la passerelle ; votre site ne parle qu'à YombalPay.</li>
-        <li>Le statut « Payé » vient toujours du serveur (webhook Bitnob vérifié + reconfirmation via l'API Bitnob), jamais du navigateur.</li>
+        <li>Le statut « Payé » vient toujours du serveur (webhook Bitnob vérifié, puis revérifié auprès de l'API Bitnob), jamais du navigateur.</li>
         <li>Idempotence de bout en bout : référence de commande, référence Bitnob, identifiant d'événement, écritures comptables uniques par paiement.</li>
         <li>Clés secrètes stockées hachées (SHA-256) et révocables ; retraits et conversions réservés au tableau de bord connecté, retraits confirmés par mot de passe.</li>
         <li>Soldes calculés depuis un registre PostgreSQL en ajout seul ; chaque débit se fait sous verrou par marchand (pas de double dépense).</li>

@@ -32,7 +32,7 @@ export default function Home() {
     <div className="home">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">Bitcoin Lightning × mobile money · Propulsé par Bitnob</p>
+          <p className="eyebrow">Bitcoin Lightning et mobile money, avec Bitnob</p>
           <h1>
             Encaissez du <span className="hl-fcfa">monde entier</span>.
             <br />
@@ -49,7 +49,7 @@ export default function Home() {
             </Link>
           </div>
           <p className="hero-proof">
-            <Icon name="shield" size={16} /> Webhooks signés et reconfirmés · registre comptable PostgreSQL · retraits confirmés par mot de passe
+            <Icon name="shield" size={16} /> Chaque paiement est vérifié deux fois auprès de Bitnob, et chaque retrait demande votre mot de passe.
           </p>
         </div>
 
@@ -77,10 +77,10 @@ export default function Home() {
 
       <section className="flow" aria-label="Le parcours de l'argent">
         {[
-          ['globe', 'Le client paie', "En Lightning, depuis n'importe quel pays et n'importe quel portefeuille. 2 secondes, quelques sats de frais."],
-          ['wallet', 'Le solde est crédité', 'Webhook Bitnob vérifié, reconfirmé, inscrit au registre. La caisse sonne.'],
-          ['shield', 'La valeur est protégée', 'Conversion automatique en USDT via le trading Bitnob : fini la volatilité.'],
-          ['out', 'Retrait mobile money', 'Wave, Orange Money ou Free Money via les payouts Bitnob, en un geste.'],
+          ['globe', 'Le client paie', "Votre client paie en Lightning depuis le pays de son choix. Ça prend deux secondes et presque rien en frais."],
+          ['wallet', 'Le solde est crédité', "Bitnob confirme le paiement, on le revérifie de notre côté, puis la caisse sonne."],
+          ['shield', 'La valeur est protégée', "La part que vous choisissez passe en USDT, une monnaie stable calée sur le dollar."],
+          ['out', 'Retrait mobile money', 'Quand vous voulez, vous retirez sur Wave, Orange Money ou Free Money.'],
         ].map(([icon, title, text], i) => (
           <div key={title} className="flow-step">
             <span className="flow-icon">
@@ -104,7 +104,7 @@ export default function Home() {
             </span>
             <div>
               <strong>+ 65 000 FCFA</strong>
-              <span>Grand boubou · payé depuis Paris</span>
+              <span>Grand boubou, payé depuis Paris</span>
             </div>
           </div>
         </div>
@@ -117,7 +117,7 @@ export default function Home() {
           </p>
           <ul className="story-points">
             <li>
-              <Icon name="globe" size={18} /> 0 carte bancaire, 0 frais de change pour sa cliente
+              <Icon name="globe" size={18} /> Sa cliente n'a besoin ni de carte bancaire, ni de bureau de change
             </li>
             <li>
               <Icon name="shield" size={18} /> Une partie de chaque vente protégée en USDT
@@ -157,9 +157,9 @@ export default function Home() {
 
       <section className="snippet">
         <div>
-          <h2>Pour les développeurs : 5 lignes</h2>
+          <h2>Pour les développeurs, cinq lignes suffisent</h2>
           <p className="muted">
-            Signature HMAC, nonces, conversion FCFA, factures, webhooks, doublons, retries : YombalPay s'en charge. Votre site ne parle qu'à
+            La signature des requêtes, la conversion en FCFA, les factures, les webhooks et les doublons, on s'en occupe. Votre site ne parle qu'à
             nous, seule la passerelle détient les clés Bitnob.
           </p>
           <Link to="/docs" className="btn link">
@@ -192,9 +192,9 @@ res.redirect(checkout.pay_url);`}</Code>
             <tbody>
               {[
                 ['YombalPay', '✓', '✓', '✓', '✓ USDT', '✓', true],
-                ['PayDunya / Wave', '—', '✓', '✓', '—', '✓'],
-                ['BitPay, OpenNode', '✓', '—', '—', 'USD', '—'],
-                ['API Bitnob en direct', '✓', '—', 'à coder', 'à coder', '—'],
+                ['PayDunya / Wave', '✗', '✓', '✓', '✗', '✓'],
+                ['BitPay, OpenNode', '✓', '✗', '✗', 'USD', '✗'],
+                ['API Bitnob en direct', '✓', '✗', 'à coder', 'à coder', '✗'],
               ].map(([name, ...cells]) => {
                 const us = cells[cells.length - 1] === true;
                 return (
@@ -212,7 +212,7 @@ res.redirect(checkout.pay_url);`}</Code>
       </section>
 
       <footer className="home-foot">
-        <span>YombalPay · Code & Chain Dakar 2026 · Propulsé par Bitnob</span>
+        <span>YombalPay, construit avec Bitnob pour le Code & Chain Dakar 2026</span>
         <span>
           <Link to="/docs">Documentation</Link> · <Link to="/login">Connexion</Link>
         </span>

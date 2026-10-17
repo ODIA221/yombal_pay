@@ -16,6 +16,8 @@ const ACTIONS = {
   webhook_secret_rotated: 'Secret webhook régénéré',
   payout_created: 'Retrait demandé',
   payout_password_failed: 'Retrait refusé (mot de passe)',
+  payout_account_changed: 'Compte de retrait modifié',
+  payout_account_password_failed: 'Changement du compte de retrait refusé (mot de passe)',
   staff_created: 'Caissier ajouté',
   staff_disabled: 'Caissier désactivé',
   staff_login: 'Connexion caissier',
@@ -32,6 +34,7 @@ export default function Settings() {
   const [profile, setProfile] = useState({ name: merchant.name, phone: merchant.phone || '' });
   const [payout, setPayout] = useState({ network: merchant.payout?.network || 'wave', phone: merchant.payout?.phone ? merchant.payout.phone.replace(/^(\d{2})(\d{3})(\d{2})(\d{2})$/, '$1 $2 $3 $4') : '', name: merchant.payout?.name || '' });
   const [pw, setPw] = useState({ current_password: '', new_password: '' });
+  const [payoutPw, setPayoutPw] = useState('');
   const [audit, setAudit] = useState([]);
 
   useEffect(() => {
@@ -70,7 +73,13 @@ export default function Settings() {
 
       <section className="panel">
         <h2>Compte de retrait par défaut</h2>
-        <form className="stack" onSubmit={save({ payout }, 'Compte de retrait enregistré')}>
+        <form
+          className="stack"
+          onSubmit={async (e) => {
+            await save({ payout, password: payoutPw }, 'Compte de retrait enregistré')(e);
+            setPayoutPw('');
+          }}
+        >
           <div className="segmented">
             {[
               ['wave', 'Wave'],
@@ -91,6 +100,9 @@ export default function Settings() {
           <Field label="Titulaire">
             <input required value={payout.name} onChange={(e) => setPayout({ ...payout, name: e.target.value })} />
           </Field>
+          <Field label="Votre mot de passe" hint="Les retraits automatiques partent vers ce compte : on vous le redemande par sécurité.">
+            <input type="password" required autoComplete="current-password" value={payoutPw} onChange={(e) => setPayoutPw(e.target.value)} />
+          </Field>
           <button className="btn primary sm">Enregistrer</button>
         </form>
       </section>
@@ -108,7 +120,7 @@ export default function Settings() {
             try {
               await api('/v1/auth/password', { method: 'POST', body: pw });
               setPw({ current_password: '', new_password: '' });
-              toast('Mot de passe modifié · autres appareils déconnectés');
+              toast('Mot de passe modifié. Vos autres appareils ont été déconnectés.');
             } catch (err) {
               toast(err.message, 'bad');
             }

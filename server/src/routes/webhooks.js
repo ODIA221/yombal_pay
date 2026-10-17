@@ -1,4 +1,4 @@
-// POST /webhooks/bitnob — réception des événements Bitnob.
+// POST /webhooks/bitnob : réception des événements Bitnob.
 // 1. Vérifie la signature HMAC-SHA512 (x-bitnob-signature) si BITNOB_WEBHOOK_SECRET est défini
 // 2. Ignore les doublons (idempotence par id d'événement, stockée en base)
 // 3. Reconfirme le statut auprès de l'API Bitnob avant de marquer « Payé »
@@ -59,7 +59,7 @@ export async function processBitnobEvent(body, { verified }) {
     }
   }
   let current = await getCheckout(checkout.id);
-  if (current.status === 'pending' && (verified || current.demo)) {
+  if (current.status === 'pending' && (verified || (current.demo && config.demoMode))) {
     await markPaid(current.id, { by: current.demo ? 'webhook_demo' : 'bitnob_webhook', preimage: data.preimage });
     current = await getCheckout(checkout.id);
   }

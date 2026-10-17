@@ -13,7 +13,7 @@ const FILTERS = [
 ];
 
 const CONFIRMED_BY = {
-  bitnob_webhook: 'Webhook Bitnob signé + reconfirmation API',
+  bitnob_webhook: 'Webhook Bitnob signé, revérifié auprès de Bitnob',
   bitnob_api: 'Vérification serveur via l’API Bitnob',
   webhook_demo: 'Webhook simulé (démo)',
 };
@@ -127,7 +127,7 @@ function PaymentDetail({ c, onClose }) {
     ...(c.fee_sats !== undefined
       ? [
           ['Commission YombalPay', `${num(c.fee_sats)} sats`],
-          ['Net crédité', c.status === 'paid' ? `${num(c.amount_sats - c.fee_sats)} sats` : '—'],
+          ['Net crédité', c.status === 'paid' ? `${num(c.amount_sats - c.fee_sats)} sats` : '-'],
         ]
       : []),
     ['Taux appliqué', `1 BTC = ${fcfa(c.rate.xof_per_btc)}`],
@@ -136,7 +136,7 @@ function PaymentDetail({ c, onClose }) {
     ['Créé le', dateTime(c.created_at)],
     ['Payé le', dateTime(c.paid_at)],
   ];
-  if (c.confirmed_by !== undefined) rows.push(['Confirmé par', CONFIRMED_BY[c.confirmed_by] || c.confirmed_by || '—']);
+  if (c.confirmed_by !== undefined) rows.push(['Confirmé par', CONFIRMED_BY[c.confirmed_by] || c.confirmed_by || '-']);
   if (c.payer_note) rows.push(['Note du payeur', c.payer_note]);
   return (
     <Modal title={c.description} onClose={onClose}>

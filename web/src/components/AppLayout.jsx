@@ -43,7 +43,7 @@ export default function AppLayout() {
     return live('/v1/merchant/stream', (type, data) => {
       if (type === 'checkout' && data.status === 'paid') {
         playChaChing();
-        toast(`${fcfa(data.amount)} reçus · ${data.description}`);
+        toast(`${fcfa(data.amount)} reçus : ${data.description}`);
       }
       if (type === 'payout' && data.status === 'completed') toast(`Retrait de ${fcfa(data.amount)} envoyé sur ${data.network_label}`);
       if (type === 'payout' && data.status === 'failed') toast(`Retrait échoué et remboursé : ${data.error || ''}`, 'bad');
@@ -83,7 +83,7 @@ export default function AppLayout() {
           </nav>
           <div className="sidebar-foot">
             <span className={`mode-badge ${merchant.mode}`}>
-              <span className="dot" /> {merchant.mode === 'live' ? 'Bitnob · réel' : 'Mode démo'}
+              <span className="dot" /> {merchant.mode === 'live' ? 'Bitnob, mode réel' : 'Mode démo'}
             </span>
             <button
               className="btn link sm"

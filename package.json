@@ -2,7 +2,7 @@
   "name": "yombalpay",
   "version": "1.0.0",
   "private": true,
-  "description": "YombalPay — le PayDunya du Bitcoin : passerelle Lightning en FCFA propulsée par Bitnob (Code & Chain Dakar 2026)",
+  "description": "YombalPay, le PayDunya du Bitcoin : passerelle Lightning en FCFA propulsée par Bitnob (Code & Chain Dakar 2026)",
   "type": "module",
   "engines": { "node": ">=18" },
   "scripts": {

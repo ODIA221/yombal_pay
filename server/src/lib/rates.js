@@ -40,15 +40,26 @@ async function fromCoinGecko() {
   return null;
 }
 
-export async function getXofPerBtc({ force = false } = {}) {
-  const now = Date.now();
-  if (!force && cache && now - cache.fetchedAt < config.rates.cacheSeconds * 1000) return cache;
-
+async function refresh() {
   const live = (await fromBitnob()) ?? (await fromCoinGecko());
+  const now = Date.now();
   cache = live
     ? { ...live, fixed: false, fetchedAt: now }
     : { xofPerBtc: config.rates.fixedXofPerBtc, source: 'Taux fixe de démonstration', fixed: true, fetchedAt: now };
   return cache;
+}
+
+// Un taux de moins de 5 minutes (durée de validité annoncée par Bitnob) est servi tout de suite
+// pendant que le nouveau se charge : les pages ne restent pas bloquées si Bitnob répond lentement.
+const STALE_MS = 5 * 60_000;
+let refreshing = null;
+
+export async function getXofPerBtc({ force = false } = {}) {
+  const age = cache ? Date.now() - cache.fetchedAt : Infinity;
+  if (!force && age < config.rates.cacheSeconds * 1000) return cache;
+  refreshing ??= refresh().finally(() => (refreshing = null));
+  if (!force && !cache?.fixed && age < STALE_MS) return cache;
+  return refreshing;
 }
 
 export function xofToSats(amountXof, xofPerBtc) {

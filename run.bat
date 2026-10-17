@@ -118,7 +118,7 @@ exit /b 0
 set "DEMO_EMAIL="
 for /f "tokens=1,* delims==" %%a in ('findstr /b /c:"DEMO_MERCHANT_EMAIL=" .env 2^>nul') do set "DEMO_EMAIL=%%b"
 echo.
-echo [OK] YombalPay est lancé - Ctrl+C pour tout arrêter
+echo [OK] YombalPay est lancé. Ctrl+C pour tout arrêter.
 echo    Boutique de démo  : http://localhost:4000
 echo    Espace marchand   : http://localhost:3000/app   (compte démo : %DEMO_EMAIL%)
 echo    Caisse            : http://localhost:3000/app/caisse

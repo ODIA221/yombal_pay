@@ -1,10 +1,10 @@
-/*! YombalPay — bouton « Payer en Bitcoin » à copier-coller.
+/*! YombalPay : bouton « Payer en Bitcoin » à copier-coller.
  *
- * Option 1 — sans code :
+ * Option 1, sans code :
  *   <script src="https://VOTRE-PASSERELLE/sdk/yombalpay.js"
  *           data-key="pk_test_…" data-amount="5000" data-reference="CMD-42"></script>
  *
- * Option 2 — JavaScript :
+ * Option 2, en JavaScript :
  *   YombalPay.init({ publishableKey: 'pk_test_…' });
  *   YombalPay.createCheckout({ amount: 5000, currency: 'XOF' }).then(c => location.href = c.pay_url);
  */

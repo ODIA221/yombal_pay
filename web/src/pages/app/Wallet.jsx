@@ -195,7 +195,7 @@ function AutoConvert({ merchant, onSaved }) {
           <Icon name="shield" size={18} /> Protection automatique
         </h2>
         <p className="muted small">
-          À chaque paiement reçu, convertir automatiquement <strong>{pct} %</strong> en USDT via le trading Bitnob. Le reste reste en Bitcoin.
+          À chaque paiement reçu, convertir automatiquement <strong>{pct} %</strong> en USDT via le trading Bitnob. Le reste est gardé en Bitcoin.
         </p>
       </div>
       <div className="auto-controls">
@@ -404,7 +404,7 @@ function PayoutModal({ balance, merchant, networks, onClose, onDone }) {
                   sur {net?.label} · +221 {f.phone}
                 </span>
                 <span className="muted small">
-                  {f.account_name} · prélevé sur votre solde {f.source_asset}
+                  {f.account_name}, prélevé sur votre solde {f.source_asset}
                 </span>
               </div>
               <Field label="Confirmez avec votre mot de passe" hint="Chaque retrait exige votre mot de passe.">

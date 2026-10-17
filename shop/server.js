@@ -1,4 +1,4 @@
-// Boutique de démo « African Costume Shop » — un vrai site marchand qui encaisse via YombalPay.
+// Boutique de démo « African Costume Shop » : un vrai site site marchand qui encaisse via YombalPay.
 // Toute l'intégration tient dans les blocs marqués ▶ YOMBALPAY.
 import 'dotenv/config';
 import express from 'express';
@@ -11,7 +11,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.SHOP_PORT) || 4000;
 const SHOP_URL = (process.env.SHOP_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
 
-// ▶ YOMBALPAY — 1. Initialiser le SDK avec la clé secrète (côté serveur uniquement)
+// ▶ YOMBALPAY, étape 1. Initialiser le SDK avec la clé secrète (côté serveur uniquement)
 const yombalpay = new YombalPay({
   apiKey: process.env.YOMBALPAY_SECRET_KEY || 'sk_test_acs_demo_2026',
   baseUrl: process.env.YOMBALPAY_URL || 'http://localhost:3000',
@@ -57,7 +57,7 @@ const layout = (title, body) => `<!doctype html><html lang="fr"><head><meta char
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/shop.css"></head><body>
-<div class="announce">${bolt} Payez en Bitcoin Lightning depuis Paris, Montréal ou New York · Livraison offerte dès 50 000 FCFA</div>
+<div class="announce">${bolt} Vous êtes à Paris, Montréal ou New York ? Payez en Bitcoin Lightning. Livraison offerte dès 50 000 FCFA.</div>
 <header class="top"><div class="wrap">
   <a class="brand" href="/"><span class="mark">A</span><span>African Costume <em>Shop</em></span></a>
   <nav><a href="/#collection">Collection</a><a href="/#atelier">L’atelier</a><a href="/#paiement">Paiement</a></nav>
@@ -88,10 +88,10 @@ function card(p) {
 app.get('/', (_req, res) => {
   res.send(
     layout(
-      'African Costume Shop · Tenues africaines cousues main à Dakar',
+      'African Costume Shop, tenues africaines cousues main à Dakar',
       `<section class="hero"><div class="wrap">
         <div class="hero-text">
-          <p class="eyebrow">Atelier de la Médina · Dakar</p>
+          <p class="eyebrow">Atelier de la Médina, Dakar</p>
           <h1>L’élégance africaine, <em>cousue main</em> à Dakar.</h1>
           <p class="lead">Grands boubous, bazin, kaftans et kente pour les mariages, la Tabaski ou le quotidien. Livrés à Paris, Montréal et New York, et payés en Bitcoin Lightning, sans carte bancaire.</p>
           <div class="cta"><a class="btn" href="#collection">Découvrir la collection</a><a class="btn ghost" href="#paiement">Comment payer ?</a></div>
@@ -101,7 +101,7 @@ app.get('/', (_req, res) => {
           <img class="c1" src="${img('boubou-pagne-tisse')}" alt="Homme en boubou de pagne tissé sérère">
           <img class="c2" src="${img('grand-boubou-organza')}" alt="Grand boubou en organza brodé">
           <img class="c3" src="${img('kente-sourire')}" alt="Femme souriante en kente et perles">
-          <div class="badge">${bolt}<div><strong>Payé en 3 secondes</strong><span>depuis Paris · 45 000 FCFA</span></div></div>
+          <div class="badge">${bolt}<div><strong>Payé en 3 secondes</strong><span>45 000 FCFA, depuis Paris</span></div></div>
         </div>
       </div></section>
 
@@ -120,7 +120,7 @@ app.get('/', (_req, res) => {
       </div></section>
 
       <section id="paiement" class="how"><div class="wrap">
-        <p class="eyebrow">Paiement</p><h2>Payer depuis l’étranger n’a jamais été aussi simple</h2>
+        <p class="eyebrow">Paiement</p><h2>Payer depuis l’étranger, en trois étapes</h2>
         <ol>
           <li><span>1</span><h3>Choisissez votre tenue</h3><p>Les prix sont en FCFA, avec l’équivalent en euros.</p></li>
           <li><span>2</span><h3>Scannez le QR Lightning</h3><p>Avec Wallet of Satoshi, Phoenix, Strike ou tout portefeuille Lightning.</p></li>
@@ -153,7 +153,7 @@ app.post('/webhooks/yombalpay', express.raw({ type: '*/*' }), (req, res) => {
   );
 });
 
-// ▶ YOMBALPAY — 2. Créer le paiement et rediriger le client vers la page hébergée
+// ▶ YOMBALPAY, étape 2. Créer le paiement et rediriger le client vers la page hébergée
 app.post('/buy/:id', async (req, res) => {
   const product = PRODUCTS.find((p) => p.id === req.params.id);
   if (!product) return res.status(404).send('Produit introuvable');
@@ -164,7 +164,7 @@ app.post('/buy/:id', async (req, res) => {
       amount: product.price,
       currency: 'XOF',
       reference: ref,
-      description: `African Costume Shop — ${product.name}${size ? ` (${size})` : ''}`,
+      description: `${product.name}${size ? `, taille ${size}` : ''}`,
       returnUrl: `${SHOP_URL}/orders/${ref}`,
       metadata: { product: product.id, ...(size ? { size } : {}) },
     });
@@ -176,7 +176,7 @@ app.post('/buy/:id', async (req, res) => {
   }
 });
 
-// ▶ YOMBALPAY — 3. Recevoir la confirmation (webhook signé)
+// ▶ YOMBALPAY, étape 3. Recevoir la confirmation (webhook signé)
 app.post('/webhooks/yombalpay', express.raw({ type: '*/*' }), (req, res) => {
   let event;
   try {
@@ -242,7 +242,7 @@ app.get('/orders/:ref', (req, res) => {
       async function tick(){
         try{const o=await (await fetch('/api/orders/'+ref)).json();
           if(o.status==='Payée'){
-            const s=document.getElementById('s-pay');s.className='done';s.textContent='Paiement reçu'+(o.sats?' · '+Number(o.sats).toLocaleString('fr-FR')+' sats':'');
+            const s=document.getElementById('s-pay');s.className='done';s.textContent='Paiement reçu'+(o.sats?', '+Number(o.sats).toLocaleString('fr-FR')+' sats':'');
             document.getElementById('s-atelier').className='now';
             document.getElementById('hint').textContent='Merci ! Votre tenue part en préparation à Dakar.';return;}
           if(o.status==='Expirée'){document.getElementById('s-pay').textContent='Paiement expiré';document.getElementById('hint').textContent='Le délai de paiement est dépassé. Vous pouvez recommencer depuis la boutique.';return;}
@@ -260,7 +260,7 @@ app.get('/credits', (_req, res) => {
       'Crédits photos',
       `<section class="credits"><div class="wrap"><h1>Crédits photos</h1>
       <p class="muted">Photos issues de Wikimedia Commons, utilisées selon leur licence. Elles ont été recadrées et compressées pour le web.</p>
-      <ul>${credits.map((c) => `<li><img src="/static/img/${esc(c.file)}" alt=""><div><strong>${esc(c.title.replace(/\.\w+$/, ''))}</strong><span>${esc(c.author || 'Auteur inconnu')} · ${esc(c.license)}</span><a href="${esc(c.source)}" rel="noopener">Voir sur Wikimedia Commons</a></div></li>`).join('')}</ul>
+      <ul>${credits.map((c) => `<li><img src="/static/img/${esc(c.file)}" alt=""><div><strong>${esc(c.title.replace(/\.\w+$/, ''))}</strong><span>${esc(c.author || 'Auteur inconnu')}, ${esc(c.license)}</span><a href="${esc(c.source)}" rel="noopener">Voir sur Wikimedia Commons</a></div></li>`).join('')}</ul>
       </div></section>`,
     ),
   );

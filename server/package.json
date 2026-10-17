@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "YombalPay — passerelle de paiement Bitcoin Lightning en FCFA, propulsée par Bitnob",
+  "description": "YombalPay, passerelle de paiement Bitcoin Lightning en FCFA, propulsée par Bitnob",
   "main": "src/index.js",
   "engines": {
     "node": ">=18"

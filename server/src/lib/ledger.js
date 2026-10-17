@@ -10,7 +10,12 @@ import { getXofPerBtc, satsToUsdtMicro, satsToXof, usdtMicroToXof, usdtPerBtc } 
 export const lockMerchant = (client, merchantId) => client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [merchantId]);
 
 export async function balances(merchantId, client) {
-  const rows = await many('SELECT asset, COALESCE(SUM(amount), 0)::bigint AS total FROM ledger_entries WHERE merchant_id = $1 GROUP BY asset', [merchantId], client);
+  // En mode réel, l'argent de démo (paiements et opérations simulés) est exclu du solde
+  const rows = await many(
+    'SELECT asset, COALESCE(SUM(amount), 0)::bigint AS total FROM ledger_entries WHERE merchant_id = $1 AND (NOT demo OR $2) GROUP BY asset',
+    [merchantId, config.demoMode],
+    client,
+  );
   const get = (a) => Number(rows.find((r) => r.asset === a)?.total ?? 0);
   return { btc_sats: get('BTC'), usdt_micro: get('USDT') };
 }
@@ -31,15 +36,15 @@ export async function balancesView(merchantId) {
 // Crédit d'un paiement confirmé (dans la transaction qui le passe à « payé »)
 export async function creditPayment(client, c) {
   await client.query(
-    `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description) VALUES ($1, 'BTC', $2, 'payment', $3, $4)
+    `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description, demo) VALUES ($1, 'BTC', $2, 'payment', $3, $4, $5)
      ON CONFLICT DO NOTHING`,
-    [c.merchant_id, c.amount_sats, c.id, `Paiement ${c.reference}`],
+    [c.merchant_id, c.amount_sats, c.id, `Paiement ${c.reference}`, c.demo],
   );
   if (c.fee_sats > 0)
     await client.query(
-      `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description) VALUES ($1, 'BTC', $2, 'fee', $3, 'Commission YombalPay')
+      `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description, demo) VALUES ($1, 'BTC', $2, 'fee', $3, 'Commission YombalPay', $4)
        ON CONFLICT DO NOTHING`,
-      [c.merchant_id, -c.fee_sats, c.id],
+      [c.merchant_id, -c.fee_sats, c.id, c.demo],
     );
 }
 
@@ -81,10 +86,10 @@ export async function convertToUsdt(merchantId, sats, { trigger = 'manual' } = {
       [id, merchantId, sats, usdtMicro, price, provider, orderId, trigger],
     );
     await client.query(
-      `INSERT INTO ledger_entries (merchant_id, asset, amount, type, conversion_id, description) VALUES
-       ($1, 'BTC', $2, 'conversion_out', $4, 'Conversion vers USDT'),
-       ($1, 'USDT', $3, 'conversion_in', $4, 'Conversion depuis BTC')`,
-      [merchantId, -sats, usdtMicro, id],
+      `INSERT INTO ledger_entries (merchant_id, asset, amount, type, conversion_id, description, demo) VALUES
+       ($1, 'BTC', $2, 'conversion_out', $4, 'Conversion vers USDT', $5),
+       ($1, 'USDT', $3, 'conversion_in', $4, 'Conversion depuis BTC', $5)`,
+      [merchantId, -sats, usdtMicro, id, provider === 'simulated'],
     );
     return { id, sats, usdt: (usdtMicro / 1e6).toFixed(2), price_usdt: price, provider, trigger };
   });
@@ -122,19 +127,19 @@ export async function stats(merchantId) {
        COUNT(*)::int AS checkout_count,
        COALESCE(SUM(amount_xof) FILTER (WHERE status = 'paid' AND paid_at >= date_trunc('day', now())), 0)::bigint AS today_xof,
        COUNT(*) FILTER (WHERE status = 'paid' AND paid_at >= date_trunc('day', now()))::int AS today_count
-     FROM checkouts WHERE merchant_id = $1`,
-    [merchantId],
+     FROM checkouts WHERE merchant_id = $1 AND (NOT demo OR $2)`,
+    [merchantId, config.demoMode],
   );
   const series = await many(
     `SELECT to_char(d, 'YYYY-MM-DD') AS day,
             COALESCE(SUM(c.amount_xof), 0)::bigint AS xof,
             COUNT(c.id)::int AS count
      FROM generate_series(date_trunc('day', now()) - interval '6 days', date_trunc('day', now()), interval '1 day') d
-     LEFT JOIN checkouts c ON c.merchant_id = $1 AND c.status = 'paid' AND date_trunc('day', c.paid_at) = d
+     LEFT JOIN checkouts c ON c.merchant_id = $1 AND c.status = 'paid' AND date_trunc('day', c.paid_at) = d AND (NOT c.demo OR $2)
      GROUP BY d ORDER BY d`,
-    [merchantId],
+    [merchantId, config.demoMode],
   );
-  const finished = s.paid_count + (await one(`SELECT COUNT(*)::int AS n FROM checkouts WHERE merchant_id = $1 AND status = 'expired'`, [merchantId])).n;
+  const finished = s.paid_count + (await one(`SELECT COUNT(*)::int AS n FROM checkouts WHERE merchant_id = $1 AND status = 'expired' AND (NOT demo OR $2)`, [merchantId, config.demoMode])).n;
   return { ...s, conversion_rate: finished ? Math.round((s.paid_count / finished) * 100) : 0, series };
 }
 

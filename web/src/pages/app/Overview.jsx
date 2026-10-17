@@ -37,7 +37,7 @@ export default function Overview() {
     <div className="page">
       <div className="page-head">
         <div>
-          <p className="eyebrow">Bonjour 👋</p>
+          <p className="eyebrow">Bonjour</p>
           <h1 className="page-title">{merchant.name}</h1>
         </div>
         <Link to="/app/caisse" className="btn primary">

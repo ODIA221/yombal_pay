@@ -110,12 +110,12 @@ export default function Links() {
           <div className="poster" id="poster">
             <Logo />
             <h2>{merchant.name}</h2>
-            <p>Payez en Bitcoin ⚡ depuis n'importe quel pays</p>
+            <p>Payez en Bitcoin, d'où que vous soyez</p>
             <div className="poster-qr">
               <QR value={publicUrl} size={260} className="qr" />
             </div>
             <strong className="mono">{merchant.lightning_address}</strong>
-            <span>Scannez · choisissez le montant en FCFA · payez</span>
+            <span>Scannez le code, entrez le montant en FCFA et validez.</span>
           </div>
           <button className="btn primary wide" onClick={() => window.print()}>
             Imprimer

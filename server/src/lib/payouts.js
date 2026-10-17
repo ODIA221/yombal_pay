@@ -85,8 +85,8 @@ export async function createPayout(merchant, { amount, network, phone, accountNa
       client,
     );
     await client.query(
-      `INSERT INTO ledger_entries (merchant_id, asset, amount, type, payout_id, description) VALUES ($1, $2, $3, 'payout', $4, $5)`,
-      [merchant.id, sourceAsset, -sourceAmount, id, `Retrait ${NETWORKS[network].label} ${amountXof} FCFA`],
+      `INSERT INTO ledger_entries (merchant_id, asset, amount, type, payout_id, description, demo) VALUES ($1, $2, $3, 'payout', $4, $5, $6)`,
+      [merchant.id, sourceAsset, -sourceAmount, id, `Retrait ${NETWORKS[network].label} ${amountXof} FCFA`, p.provider === 'simulated'],
     );
     return p;
   });
@@ -121,9 +121,9 @@ export async function failPayout(id, reason) {
     );
     if (row)
       await client.query(
-        `INSERT INTO ledger_entries (merchant_id, asset, amount, type, payout_id, description) VALUES ($1, $2, $3, 'payout_reversal', $4, 'Retrait échoué — remboursé')
+        `INSERT INTO ledger_entries (merchant_id, asset, amount, type, payout_id, description, demo) VALUES ($1, $2, $3, 'payout_reversal', $4, 'Retrait échoué, remboursé', $5)
          ON CONFLICT DO NOTHING`,
-        [row.merchant_id, row.source_asset, row.source_amount, row.id],
+        [row.merchant_id, row.source_asset, row.source_amount, row.id, row.provider === 'simulated'],
         client,
       );
     return row;
