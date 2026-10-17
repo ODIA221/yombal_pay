@@ -29,7 +29,8 @@ await step('Cotation trading 0,0001 BTC → USDT', () => bitnob.createQuote({ qu
 const countries = await step('Corridors de retrait (payouts)', () => bitnob.payoutCountries());
 const list = Array.isArray(countries) ? countries : countries?.countries ?? [];
 const sn = list.find((c) => (c.code || c.country || c.iso2) === 'SN');
-console.log(sn ? '✅ Corridor Sénégal (SN) ouvert sur ce compte' : '⚠️  Corridor Sénégal (SN) non listé : utilisez PAYOUT_MODE=simulated pour la démo et demandez son ouverture à Bitnob');
+if (!countries) console.log('⏭️  Corridor Sénégal (SN) non vérifié : l’appel précédent a échoué');
+else console.log(sn ? '✅ Corridor Sénégal (SN) ouvert sur ce compte' : '⚠️  Corridor Sénégal (SN) non listé : utilisez PAYOUT_MODE=simulated pour la démo et demandez son ouverture à Bitnob');
 if (sn) {
   await step('Exigences du corridor SN', () => bitnob.payoutRequirements('SN'));
   await step('Opérateurs mobile money SN', () => bitnob.payoutBanks('SN'));
