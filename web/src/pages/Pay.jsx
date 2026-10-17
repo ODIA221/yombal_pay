@@ -174,6 +174,9 @@ export default function Pay() {
               {t.merchantNotified}
             </p>
             {c.savings?.xof > 0 && <p className="savings">{t.saved(fcfa(c.savings.xof))}</p>}
+            <a className="btn ghost wide receipt-link" href={`/recu/${c.id}`} target="_blank" rel="noreferrer">
+              {t.getReceipt}
+            </a>
             {c.return_url && (
               <a className="btn primary wide" href={c.return_url}>
                 {t.backTo(c.merchant?.name)} {redirectIn ? `(${redirectIn})` : ''}

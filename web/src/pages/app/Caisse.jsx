@@ -119,7 +119,10 @@ function ChargeScreen({ c, onDone, onUpdate }) {
         </div>
         <h2>Paiement reçu</h2>
         <p className="pos-paid-amount">{fcfa(c.amount)}</p>
-        <p className="muted">{num(c.amount_sats)} sats crédités sur votre solde</p>
+        <p className="muted">{c.pay_asset === 'USDT' ? `${c.usdt.received} USDT` : `${num(c.amount_sats)} sats`} crédités sur votre solde</p>
+        <a className="btn ghost wide" href={`/recu/${c.id}`} target="_blank" rel="noreferrer">
+          Reçu à envoyer au client
+        </a>
         <button className="btn primary xl wide" onClick={onDone}>
           Nouvelle vente
         </button>

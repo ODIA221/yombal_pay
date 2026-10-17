@@ -88,7 +88,7 @@ app.get('/dashboard', (_req, res) => res.redirect(301, '/app'));
 if (fs.existsSync(webDist)) {
   app.use(express.static(webDist, { index: false, maxAge: '1h' }));
   const spa = (_req, res) => res.sendFile(path.join(webDist, 'index.html'));
-  app.get(['/', '/pay/:id', '/login', '/signup', '/docs', '/app', '/app/*'], spa);
+  app.get(['/', '/pay/:id', '/recu/:id', '/login', '/signup', '/docs', '/app', '/app/*'], spa);
   app.get(/^\/@[a-z0-9._-]+\/?$/i, spa);
 } else {
   app.get('/', (_req, res) =>

@@ -4,6 +4,7 @@ import { BrowserRouter, NavLink, Route, Routes, useLocation } from 'react-router
 import Home from './pages/Home.jsx';
 import Pay from './pages/Pay.jsx';
 import PublicPay from './pages/PublicPay.jsx';
+import Recu from './pages/Recu.jsx';
 import Docs from './pages/Docs.jsx';
 import { Login, Signup } from './pages/Auth.jsx';
 import AppLayout, { MoreMenu } from './components/AppLayout.jsx';
@@ -46,13 +47,14 @@ function SiteNav() {
 
 function Shell() {
   const { pathname } = useLocation();
-  const bare = pathname.startsWith('/pay/') || pathname.startsWith('/@') || pathname.startsWith('/app') || pathname === '/login' || pathname === '/signup';
+  const bare = pathname.startsWith('/pay/') || pathname.startsWith('/recu/') || pathname.startsWith('/@') || pathname.startsWith('/app') || pathname === '/login' || pathname === '/signup';
   return (
     <>
       {!bare && <SiteNav />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/pay/:id" element={<Pay />} />
+        <Route path="/recu/:id" element={<Recu />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />

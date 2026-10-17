@@ -15,7 +15,8 @@ export const MIN_XOF = 100;
 export const MAX_XOF = 5_000_000;
 
 const SELECT = `SELECT c.*, m.name AS merchant_name, m.username AS merchant_username,
-  (SELECT json_agg(json_build_object('chain', a.chain, 'address', a.address) ORDER BY a.created_at) FROM checkout_addresses a WHERE a.checkout_id = c.id) AS usdt_addresses
+  (SELECT json_agg(json_build_object('chain', a.chain, 'address', a.address) ORDER BY a.created_at) FROM checkout_addresses a WHERE a.checkout_id = c.id) AS usdt_addresses,
+  (SELECT json_agg(json_build_object('chain', d.chain, 'hash', d.hash) ORDER BY d.created_at) FROM deposits d WHERE d.checkout_id = c.id AND d.hash IS NOT NULL) AS deposit_hashes
   FROM checkouts c JOIN merchants m ON m.id = c.merchant_id`;
 
 // Montant attendu en USDT (micro-USDT, arrondi au centime supérieur), au taux USD/FCFA de la passerelle
@@ -47,6 +48,13 @@ export function publicCheckout(c) {
     paid_at: c.paid_at,
     demo: c.demo,
     pay_asset: c.pay_asset ?? 'BTC',
+    // Preuve publique pour le reçu : empreinte de la facture Lightning, ou hash des transactions blockchain
+    proof:
+      c.status !== 'paid'
+        ? null
+        : c.pay_asset === 'USDT'
+          ? { type: 'blockchain', transactions: c.deposit_hashes ?? [] }
+          : { type: 'lightning', payment_hash: c.payment_hash },
     usdt: usdtView(c),
     savings: {
       xof: savingsXof(c.amount_xof, c.amount_sats ? (c.fee_sats * c.amount_xof) / c.amount_sats : 0),

@@ -83,6 +83,8 @@ try {
 
   const dup = await json(await fetch(`${API}/webhooks/bitnob`, { method: 'POST', headers: { 'x-bitnob-signature': sig }, body }));
   check(dup.status === 'duplicate', 'Rejeu du webhook ignoré (idempotence en base)');
+  const paidView = await json(await fetch(`${API}/v1/checkouts/${id}`));
+  check(c.proof === null && paidView.proof?.type === 'lightning' && Boolean(paidView.proof.payment_hash), 'Reçu : preuve Lightning disponible seulement une fois payé');
 
   const ov1 = await json(await fetch(`${API}/v1/overview`, { headers: K }));
   const credited = ov1.balance.btc.sats - ov0.balance.btc.sats;
@@ -124,6 +126,7 @@ try {
   const full = await json(await signed(dep(2, 15_000_000)));
   const afterFull = await json(await fetch(`${API}/v1/checkouts/${u0.id}`));
   check(full.status === 'paid' && afterFull.pay_asset === 'USDT', 'Reste envoyé (15 USDT) → paiement « Payé » en USDT');
+  check(afterFull.proof?.type === 'blockchain' && afterFull.proof.transactions.length === 2, 'Reçu : les 2 transactions blockchain servent de preuve');
   check((await json(await signed(dep(2, 15_000_000)))).status === 'duplicate', 'Rejeu du dépôt ignoré');
   const usdtAfter = (await json(await fetch(`${API}/v1/overview`, { headers: K }))).balance.usdt.micro;
   check(usdtAfter - usdtBefore === 19_800_000, `Registre : +${(usdtAfter - usdtBefore) / 1e6} USDT crédités (20 USDT moins 1 %)`);
@@ -283,7 +286,7 @@ try {
   const go = await fetch(link.url, { redirect: 'manual' });
   check(go.status === 302 && go.headers.get('location').startsWith('/pay/chk_'), 'Lien de paiement → nouvelle page de paiement');
 
-  for (const p of ['/', '/login', '/signup', '/app', '/app/caisse', `/pay/${id}`, '/@fatou', '/docs', '/sdk/yombalpay.js', '/manifest.webmanifest']) {
+  for (const p of ['/', '/login', '/signup', '/app', '/app/caisse', `/pay/${id}`, `/recu/${id}`, '/@fatou', '/docs', '/sdk/yombalpay.js', '/manifest.webmanifest']) {
     check((await fetch(API + p)).status === 200, `GET ${p}`);
   }
   const headers = (await fetch(`${API}/`)).headers;
