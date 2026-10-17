@@ -211,3 +211,31 @@ ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS demo boolean NOT NULL DEFAUL
 UPDATE ledger_entries l SET demo = true FROM checkouts c WHERE l.checkout_id = c.id AND c.demo AND NOT l.demo;
 UPDATE ledger_entries l SET demo = true FROM conversions v WHERE l.conversion_id = v.id AND v.provider = 'simulated' AND NOT l.demo;
 UPDATE ledger_entries l SET demo = true FROM payouts p WHERE l.payout_id = p.id AND p.provider = 'simulated' AND NOT l.demo;
+
+-- ── v4 : paiement en stablecoins (USDT / USDC) via les adresses de dépôt Bitnob ───────────
+-- Une adresse par paiement et par réseau : le dépôt est rattaché au paiement sans ambiguïté.
+ALTER TABLE checkouts ADD COLUMN IF NOT EXISTS pay_asset text NOT NULL DEFAULT 'BTC';
+ALTER TABLE checkouts ADD COLUMN IF NOT EXISTS usdt_amount_micro bigint;
+ALTER TABLE checkouts ADD COLUMN IF NOT EXISTS usdt_received_micro bigint;
+CREATE TABLE IF NOT EXISTS checkout_addresses (
+  address     text PRIMARY KEY,
+  checkout_id text NOT NULL REFERENCES checkouts(id) ON DELETE CASCADE,
+  chain       text NOT NULL,
+  bitnob_id   text,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (checkout_id, chain)
+);
+-- Dépôts reçus (idempotence par transaction Bitnob)
+CREATE TABLE IF NOT EXISTS deposits (
+  transaction_id text PRIMARY KEY,
+  checkout_id    text NOT NULL REFERENCES checkouts(id) ON DELETE CASCADE,
+  address        text NOT NULL,
+  chain          text NOT NULL,
+  currency       text NOT NULL,
+  amount_micro   bigint NOT NULL CHECK (amount_micro > 0),
+  hash           text,
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS deposits_checkout_idx ON deposits(checkout_id);
+ALTER TABLE checkout_addresses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE deposits ENABLE ROW LEVEL SECURITY;

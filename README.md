@@ -20,7 +20,7 @@ Construit sur l'API **Bitnob** (Lightning, Trading, Payouts) pour Code & Chain D
 ## La solution : la boucle complète
 
 ```
-Client (n'importe où) ── Lightning ──▶ YombalPay ──▶ Solde FCFA ──▶ USDT (anti-volatilité) ──▶ Wave / Orange Money
+Client (n'importe où) ── Lightning ou USDT ──▶ YombalPay ──▶ Solde FCFA ──▶ USDT (anti-volatilité) ──▶ Wave / Orange Money
                                        Bitnob Lightning          Bitnob Trading            Bitnob Payouts
 ```
 
@@ -32,13 +32,14 @@ Client (n'importe où) ── Lightning ──▶ YombalPay ──▶ Solde FCFA
 | **Liens de paiement** WhatsApp à montant fixe | Graphique des ventes, export CSV, preuve de paiement | Journal des notifications, renvoi manuel |
 | **« Payer pour un proche »** (diaspora), pages client **FR / EN** | **Retrait automatique** dès qu'un seuil est atteint | **Plugin WooCommerce** (`integrations/woocommerce`) |
 | **Comptes caissiers** : caisse et ventes uniquement | Journal d'activité du compte | |
+| **Paiement en USDT / USDC** (Tron, BNB Chain, Polygon) : adresse de dépôt Bitnob par paiement | **Paiements USDT crédités en USDT** : aucune volatilité | |
 | **Frais évités** affichés au client avant et après paiement | **Compteur d'impact** : total des frais évités par vos clients | |
 
 ## Démarrage
 
 ```bash
 ./run.sh           # installe tout, crée la base, construit le front, lance passerelle :3000 + boutique :4000
-./run.sh test      # 64 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
+./run.sh test      # 77 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
 ./run.sh dev       # API rechargée à chaque modification + Vite :5173 + boutique
 ./run.sh check     # diagnostic de la connexion Bitnob
 ```
@@ -76,7 +77,8 @@ Sans `DATABASE_URL`, `run.sh` utilise un PostgreSQL local, utile si le réseau t
 |---|---|---|
 | Authentification HMAC-SHA256 | en-têtes `X-Auth-Client`, `X-Auth-Timestamp`, `X-Auth-Nonce`, `X-Auth-Signature` | `server/src/lib/bitnob.js` |
 | Lightning | `POST /api/lightning/invoices`, `GET /api/lightning/invoices/:id` | `lib/payments.js`, `routes/lnurl.js` |
-| Webhooks | `transfer.success`, `payouts.*` (HMAC-SHA512 `x-bitnob-signature`) | `routes/webhooks.js` |
+| Webhooks | `transfer.success`, `deposit.success`, `payouts.*` (HMAC-SHA512 `x-bitnob-signature`) | `routes/webhooks.js` |
+| Stablecoins | `POST /api/addresses` (une adresse par paiement), webhook `deposit.success`, `GET /api/transactions/:id`, `GET /api/stablecoins/supported-chains` | `lib/stablecoins.js` |
 | Trading | `POST /api/trading/quotes` → `POST /api/trading/orders` (BTC → USDT) | `lib/ledger.js` |
 | Payouts | `supported-countries`, `banks/:country`, `quotes` → `:id/initialize` → `:id/finalize` | `lib/payouts.js` |
 | Taux | `GET /api/exchange-rates` (BTC/XOF, sinon BTC/USDT) | `lib/rates.js` |
@@ -117,7 +119,7 @@ Sans `DATABASE_URL`, `run.sh` utilise un PostgreSQL local, utile si le réseau t
 
 - KYC marchand et plafonds par niveau.
 - Plugin Shopify.
-- Paiement on-chain (`deposit.success`).
+- Paiement Bitcoin on-chain (adresse `bitcoin`, même mécanisme que l'USDT).
 - Interface en wolof, à faire relire par des locuteurs natifs.
 
 ## Crédits photos
