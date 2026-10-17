@@ -13,7 +13,8 @@ const SHOP_URL = (process.env.SHOP_URL || `http://localhost:${PORT}`).replace(/\
 
 // ▶ YOMBALPAY, étape 1. Initialiser le SDK avec la clé secrète (côté serveur uniquement)
 const yombalpay = new YombalPay({
-  apiKey: process.env.YOMBALPAY_SECRET_KEY || 'sk_test_acs_demo_2026',
+  // Préfixe « sk_ » ajouté si besoin (clé générée par l'hébergeur), comme dans server/src/config.js
+  apiKey: process.env.YOMBALPAY_SECRET_KEY ? process.env.YOMBALPAY_SECRET_KEY.replace(/^(?!sk_)/, 'sk_') : 'sk_test_acs_demo_2026',
   baseUrl: process.env.YOMBALPAY_URL || 'http://localhost:3000',
 });
 const WEBHOOK_SECRET = process.env.YOMBALPAY_WEBHOOK_SECRET || 'whsec_acs_demo_2026';
