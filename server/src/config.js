@@ -26,6 +26,9 @@ export const config = {
     clientSecret,
     // Secret utilisé par Bitnob pour signer les webhooks (HMAC-SHA512, en-tête x-bitnob-signature)
     webhookSecret: process.env.BITNOB_WEBHOOK_SECRET || '',
+    // Même ID client en sandbox et en production : c'est le secret qui choisit l'environnement.
+    // Un secret de production commence par « prd: » ; tout autre secret est traité comme sandbox.
+    keyEnv: !clientSecret ? 'none' : clientSecret.startsWith('prd:') ? 'production' : 'sandbox',
   },
 
   // Mode démo : actif si DEMO_MODE=true OU si aucune clé Bitnob n'est fournie.

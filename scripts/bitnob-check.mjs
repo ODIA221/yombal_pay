@@ -1,5 +1,18 @@
 // Vérifie vos clés Bitnob avant la démo : signature HMAC, taux, création d'une facture de 1 000 sats.
 import { bitnob } from '../server/src/lib/bitnob.js';
+import { config as cfg } from '../server/src/config.js';
+
+if (cfg.bitnob.keyEnv === 'none') {
+  console.log('❌ BITNOB_CLIENT_ID / BITNOB_CLIENT_SECRET absents du .env');
+  process.exit(1);
+}
+console.log(`ℹ️  Adresse : ${cfg.bitnob.baseUrl}`);
+console.log(
+  cfg.bitnob.keyEnv === 'production'
+    ? '⚠️  Secret de PRODUCTION (prd:) : pour les tests, mettez le secret SANDBOX dans BITNOB_CLIENT_SECRET (l’ID client ne change pas)'
+    : 'ℹ️  Secret sandbox : environnement de test',
+);
+if (cfg.demoMode) console.log('ℹ️  DEMO_MODE=true : le serveur n’utilisera pas ces clés tant que DEMO_MODE n’est pas retiré du .env');
 
 const step = async (label, fn) => {
   try { const r = await fn(); console.log(`✅ ${label}`, JSON.stringify(r).slice(0, 300)); return r; }
