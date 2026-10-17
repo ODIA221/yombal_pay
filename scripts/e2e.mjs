@@ -232,6 +232,28 @@ try {
   const solde1 = (await json(await me('/v1/overview'))).balance.btc.sats;
   check(after.data.find((p) => p.id === payout.id)?.status === 'completed' && solde1 === solde0, 'Échec tardif d’un retrait reçu : ni changement de statut, ni remboursement');
 
+  // ── Épargne en USDT ───────────────────────────────────────────────────────
+  check((await json(await me('/v1/savings'))).balance.micro === 0, 'Épargne vide au départ');
+  const goal = await json(await me('/v1/savings', { method: 'PATCH', body: { goal_name: 'Tabaski', goal_xof: 300000, pct: 10 } }));
+  check(goal.goal.name === 'Tabaski' && goal.pct === 10, 'Objectif « Tabaski » 300 000 FCFA, 10 % de chaque vente');
+  check((await me('/v1/savings', { method: 'PATCH', body: { pct: 60 } })).status === 422, 'Épargne automatique plafonnée à 50 %');
+  const main0 = (await json(await me('/v1/overview'))).balance.usdt.micro;
+  const sv = await json(await me('/v1/savings/deposit', { method: 'POST', body: { amount: 3000 } }));
+  const ovS = await json(await me('/v1/overview'));
+  check(sv.balance.micro === 5_000_000 && ovS.balance.usdt.micro === main0 - 5_000_000 && ovS.balance.savings.micro === 5_000_000, '3 000 FCFA mis de côté = 5 USDT, sortis du solde disponible');
+  check(sv.goal.progress === 1, `Progression de l'objectif : ${sv.goal.progress} %`);
+  const tooMuch = await me('/v1/payouts', { method: 'POST', body: { network: 'wave', phone: '77 123 45 67', account_name: 'Fatou Diop', password: 'dakar2026', amount: Math.floor(ovS.balance.usdt.xof + 2000), source_asset: 'USDT' } });
+  check(tooMuch.status === 422, 'L’épargne ne peut pas partir en retrait');
+  check((await me('/v1/savings/unlock', { method: 'POST', body: { amount: 1200, password: 'faux' } })).status === 401, 'Débloquer l’épargne exige le mot de passe');
+  const un = await json(await me('/v1/savings/unlock', { method: 'POST', body: { amount: 1200, password: 'dakar2026' } }));
+  check(un.balance.micro === 3_000_000, 'Épargne débloquée : 2 USDT reviennent au solde disponible');
+  const saleS = await json(await anon('/v1/public/merchants/fatou/checkouts', { method: 'POST', body: { amount: 20000 } }));
+  await fetch(`${API}/v1/checkouts/${saleS.id}/simulate-payment`, { method: 'POST' });
+  await sleep(800);
+  const auto = await json(await me('/v1/savings'));
+  check(auto.balance.micro > 3_000_000 && auto.history.some((h) => h.description.includes('automatique')), `Vente de 20 000 FCFA → ${(auto.balance.micro / 1e6 - 3).toFixed(2)} USDT épargnés automatiquement`);
+  await me('/v1/savings', { method: 'PATCH', body: { pct: 0 } });
+
   // ── Équipe : caissier ─────────────────────────────────────────────────────
   const st = await me('/v1/staff', { method: 'POST', body: { name: 'Moussa', email: 'moussa@test.sn', password: 'caisse2026' } });
   const stj = await json(st);

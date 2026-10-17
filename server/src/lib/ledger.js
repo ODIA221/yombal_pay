@@ -9,11 +9,12 @@ import { getXofPerBtc, satsToUsdtMicro, satsToXof, usdtMicroToXof, usdtPerBtc } 
 
 export const lockMerchant = (client, merchantId) => client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [merchantId]);
 
-export async function balances(merchantId, client) {
+// pocket « main » = solde disponible ; « savings » = épargne (exclue des retraits et conversions)
+export async function balances(merchantId, client, pocket = 'main') {
   // En mode réel, l'argent de démo (paiements et opérations simulés) est exclu du solde
   const rows = await many(
-    'SELECT asset, COALESCE(SUM(amount), 0)::bigint AS total FROM ledger_entries WHERE merchant_id = $1 AND (NOT demo OR $2) GROUP BY asset',
-    [merchantId, config.demoMode],
+    'SELECT asset, COALESCE(SUM(amount), 0)::bigint AS total FROM ledger_entries WHERE merchant_id = $1 AND (NOT demo OR $2) AND pocket = $3 GROUP BY asset',
+    [merchantId, config.demoMode, pocket],
     client,
   );
   const get = (a) => Number(rows.find((r) => r.asset === a)?.total ?? 0);
@@ -21,7 +22,7 @@ export async function balances(merchantId, client) {
 }
 
 export async function balancesView(merchantId) {
-  const b = await balances(merchantId);
+  const [b, s] = await Promise.all([balances(merchantId), balances(merchantId, undefined, 'savings')]);
   const rate = await getXofPerBtc();
   const btcXof = satsToXof(b.btc_sats, rate.xofPerBtc);
   const usdtXof = usdtMicroToXof(b.usdt_micro);
@@ -29,6 +30,7 @@ export async function balancesView(merchantId) {
     btc: { sats: b.btc_sats, xof: btcXof },
     usdt: { amount: (b.usdt_micro / 1e6).toFixed(2), micro: b.usdt_micro, xof: usdtXof },
     total_xof: btcXof + usdtXof,
+    savings: { usdt: (s.usdt_micro / 1e6).toFixed(2), micro: s.usdt_micro, xof: usdtMicroToXof(s.usdt_micro) },
     rate: { xof_per_btc: Math.round(rate.xofPerBtc), usd_xof: config.rates.usdToXof, source: rate.source },
   };
 }
@@ -113,7 +115,7 @@ export async function convertToUsdt(merchantId, sats, { trigger = 'manual' } = {
        ($1, 'USDT', $3, 'conversion_in', $4, 'Conversion depuis BTC', $5)`,
       [merchantId, -sats, usdtMicro, id, provider === 'simulated'],
     );
-    return { id, sats, usdt: (usdtMicro / 1e6).toFixed(2), price_usdt: price, provider, trigger };
+    return { id, sats, usdt: (usdtMicro / 1e6).toFixed(2), usdt_micro: usdtMicro, price_usdt: price, provider, trigger };
   });
   publish(`merchant:${merchantId}`, 'balance', { reason: 'conversion' });
   return result;
@@ -136,7 +138,7 @@ export const listConversions = (merchantId) =>
   many('SELECT id, sats, usdt_micro, price_usdt, provider, trigger, created_at FROM conversions WHERE merchant_id = $1 ORDER BY created_at DESC LIMIT 50', [merchantId]);
 
 export const listLedger = (merchantId, limit = 50) =>
-  many('SELECT id, asset, amount, type, checkout_id, payout_id, conversion_id, description, created_at FROM ledger_entries WHERE merchant_id = $1 ORDER BY id DESC LIMIT $2', [merchantId, limit]);
+  many('SELECT id, asset, amount, type, pocket, checkout_id, payout_id, conversion_id, description, created_at FROM ledger_entries WHERE merchant_id = $1 ORDER BY id DESC LIMIT $2', [merchantId, limit]);
 
 // Statistiques et série sur 7 jours (heure de Dakar = UTC)
 export async function stats(merchantId) {

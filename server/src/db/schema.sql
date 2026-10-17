@@ -242,3 +242,10 @@ ALTER TABLE deposits ENABLE ROW LEVEL SECURITY;
 -- Chaque dépôt est crédité dès son arrivée (une seule fois), même partiel ou après paiement
 ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS deposit_id text REFERENCES deposits(transaction_id);
 CREATE UNIQUE INDEX IF NOT EXISTS ledger_once_deposit ON ledger_entries(type, deposit_id) WHERE deposit_id IS NOT NULL;
+
+-- ── v5 : épargne en USDT (objectif, % de chaque vente mis de côté) ──────────────────
+-- Les écritures « savings » sont exclues du solde disponible : l'épargne ne part pas en retrait par erreur.
+ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS pocket text NOT NULL DEFAULT 'main';
+ALTER TABLE merchants ADD COLUMN IF NOT EXISTS savings_pct integer NOT NULL DEFAULT 0;
+ALTER TABLE merchants ADD COLUMN IF NOT EXISTS savings_goal_name text;
+ALTER TABLE merchants ADD COLUMN IF NOT EXISTS savings_goal_xof bigint;

@@ -26,6 +26,7 @@ import {
 import { assertSafeWebhookUrl, audit, hashPassword, randomToken, rateLimit, verifyPassword } from '../lib/security.js';
 import { processBitnobEvent } from './webhooks.js';
 import { depositAddress } from '../lib/stablecoins.js';
+import { saveXof, savingsView, unlock } from '../lib/savings.js';
 
 export const api = express.Router();
 api.use(express.json({ limit: '100kb' }));
@@ -254,6 +255,7 @@ api.patch('/merchant', sessionOnly, rateLimit({ name: 'merchant-update', limit: 
   if (b.auto_convert_pct !== undefined) {
     const p = Math.round(Number(b.auto_convert_pct));
     if (!(p >= 0 && p <= 100)) return fail(res, 422, 'invalid_pct', 'Pourcentage entre 0 et 100.');
+    if (p + (req.merchant.savings_pct || 0) > 100) return fail(res, 422, 'invalid_pct', 'Protection USDT + épargne automatique : 100 % maximum.');
     set('auto_convert_pct', p);
   }
   if (b.payout !== undefined) {
@@ -330,6 +332,51 @@ api.post('/conversions', sessionOnly, rateLimit({ name: 'convert', limit: 20, wi
   } catch (e) {
     fail(res, e.status || 502, e.status ? 'invalid_request' : 'bitnob_error', e.message);
   }
+}));
+
+// ── Épargne en USDT (propriétaire uniquement) ───────────────────────────────
+api.get('/savings', sessionOnly, wrap(async (req, res) => res.json(await savingsView(req.merchant))));
+
+api.patch('/savings', sessionOnly, wrap(async (req, res) => {
+  const b = req.body || {};
+  const m = req.merchant;
+  const pct = b.pct === undefined ? m.savings_pct : Math.round(Number(b.pct));
+  if (!(pct >= 0 && pct <= 50)) return fail(res, 422, 'invalid_pct', 'Épargne automatique : entre 0 et 50 % de chaque vente.');
+  if (pct + (m.auto_convert_pct || 0) > 100) return fail(res, 422, 'invalid_pct', 'Protection USDT + épargne automatique : 100 % maximum.');
+  const goalXof = b.goal_xof === undefined ? m.savings_goal_xof : b.goal_xof ? Math.round(Number(b.goal_xof)) : null;
+  if (goalXof !== null && !(goalXof >= 1000 && goalXof <= 100_000_000)) return fail(res, 422, 'invalid_goal', 'Objectif entre 1 000 et 100 000 000 FCFA.');
+  const name = b.goal_name === undefined ? m.savings_goal_name : String(b.goal_name || '').trim().slice(0, 40) || null;
+  const updated = await one(
+    'UPDATE merchants SET savings_pct = $2, savings_goal_xof = $3, savings_goal_name = $4 WHERE id = $1 RETURNING *',
+    [m.id, pct, goalXof, name],
+  );
+  await audit(m.id, 'savings_settings', req, { pct, goal_xof: goalXof });
+  res.json(await savingsView(updated));
+}));
+
+api.post('/savings/deposit', sessionOnly, rateLimit({ name: 'savings', limit: 20, windowMs: 600_000, key: (req) => req.merchant.id }), wrap(async (req, res) => {
+  try {
+    await saveXof(req.merchant, req.body?.amount);
+  } catch (e) {
+    return fail(res, e.status || 502, e.status ? 'invalid_request' : 'bitnob_error', e.message);
+  }
+  await audit(req.merchant.id, 'savings_deposit', req, { amount: req.body?.amount });
+  res.status(201).json(await savingsView(req.merchant));
+}));
+
+// Débloquer l'épargne : mot de passe exigé, comme un retrait
+api.post('/savings/unlock', sessionOnly, rateLimit({ name: 'savings-unlock', limit: 10, windowMs: 600_000, key: (req) => req.merchant.id }), wrap(async (req, res) => {
+  if (!(await verifyPassword(String(req.body?.password || ''), req.merchant.password_hash))) {
+    await audit(req.merchant.id, 'savings_unlock_password_failed', req);
+    return fail(res, 401, 'invalid_password', 'Mot de passe incorrect.');
+  }
+  try {
+    await unlock(req.merchant, req.body?.amount);
+  } catch (e) {
+    return fail(res, e.status || 500, 'invalid_request', e.message);
+  }
+  await audit(req.merchant.id, 'savings_unlock', req, { amount: req.body?.amount ?? 'tout' });
+  res.json(await savingsView(req.merchant));
 }));
 
 // ── Retraits mobile money ───────────────────────────────────────────────────
