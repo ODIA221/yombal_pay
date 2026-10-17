@@ -26,8 +26,9 @@ export async function processBitnobEvent(body, { verified }) {
   if (/payout|withdrawal/i.test(type)) {
     const key = eventId ? `evt:${eventId}` : `${type}:${data?.reference}`;
     if (await alreadyProcessed(key)) return { status: 'duplicate', key };
-    // Un échec déclenche un remboursement : jamais sur la foi d'un événement non signé
-    if (!verified && !/success|completed/i.test(type)) return { status: 'ignored', reason: 'non vérifié' };
+    // Jamais sur la foi d'un événement non signé : un échec rembourse, et un faux succès figerait le retrait
+    // (un vrai échec arrivé ensuite ne pourrait plus le rembourser)
+    if (!verified) return { status: 'ignored', reason: 'non vérifié' };
     const r = await handlePayoutEvent(type, data);
     await markProcessed(key);
     return r;

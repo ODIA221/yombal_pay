@@ -11,7 +11,7 @@ Construit sur l'API **Bitnob** (Lightning, Trading, Payouts) pour Code & Chain D
 
 ## Le problème
 
-- **Aïssatou vend du wax à Dakar.** Sa meilleure cliente, Fatou, vit à Paris. Fatou n'a pas Wave sénégalais, sa carte coûte 4 % de frais, et les passerelles Bitcoin étrangères ne versent pas un franc CFA. La vente ne se fait pas.
+- **Aïssatou tient African Costume Shop à Dakar : grands boubous, bazin et kaftans cousus main.** Sa meilleure cliente, Fatou, vit à Paris. Fatou n'a pas Wave sénégalais, sa carte coûte 4 % de frais, et les passerelles Bitcoin étrangères ne versent pas un franc CFA. La vente ne se fait pas.
 - **Les commerçants ont peur de la volatilité** et ne savent pas transformer des sats en argent utilisable.
 - **Intégrer Bitnob en direct** demande de gérer la signature HMAC, la conversion FCFA, les webhooks, les doublons, la comptabilité et les retraits. Il faut des jours de travail.
 
@@ -104,13 +104,17 @@ Sans `DATABASE_URL`, `run.sh` utilise un PostgreSQL local, utile si le réseau t
 | `server/` | API Express et PostgreSQL (Supabase) : comptes, paiements, ledger, conversions, retraits, LNURL, webhooks, temps réel (SSE) |
 | `web/` | React et Vite : site, espace marchand (accueil, caisse, paiements, portefeuille, liens, développeurs, réglages), pages de paiement, PWA |
 | `sdk/` | SDK Node (`createCheckout`, `verifyWebhook`) et bouton navigateur |
-| `shop/` | Boutique « Wax & Co Dakar » qui encaisse via le SDK |
+| `shop/` | Boutique « African Costume Shop » (costumes africains) qui encaisse via le SDK |
 | `scripts/` | Tests de bout en bout, diagnostic Bitnob |
 | `integrations/woocommerce/` | Plugin WordPress / WooCommerce (webhook vérifié et reconfirmé) |
 
 ## Feuille de route
 
 KYC marchand et plafonds par niveau · plugin Shopify · paiement on-chain (`deposit.success`) · interface en wolof (traduction à valider par des locuteurs natifs).
+
+## Crédits photos
+
+Les photos de la boutique de démo viennent de Wikimedia Commons (licences CC BY, CC BY-SA et CC0). Auteurs et liens : page `/credits` de la boutique et `shop/public/img/credits.json`.
 
 ## Licence
 

@@ -10,9 +10,10 @@ import { balances, lockMerchant } from './ledger.js';
 import { getXofPerBtc, xofToSats, xofToUsdtMicro } from './rates.js';
 
 export const NETWORKS = {
-  wave: { label: 'Wave', match: /wave/i },
-  orange_money: { label: 'Orange Money', match: /orange/i },
-  free_money: { label: 'Free Money (Mixx by Yas)', match: /free|mixx|yas/i },
+  // bitnob : valeur attendue par le champ « network » du corridor SN (GET /api/payouts/supported-countries/SN)
+  wave: { label: 'Wave', bitnob: 'wave' },
+  orange_money: { label: 'Orange Money', bitnob: 'orange' },
+  free_money: { label: 'Free Money (Mixx by Yas)', bitnob: 'free' },
 };
 
 const err = (message, status = 422) => Object.assign(new Error(message), { status });
@@ -50,6 +51,7 @@ export function publicPayout(p) {
 export async function createPayout(merchant, { amount, network, phone, accountName, sourceAsset = 'BTC', trigger = 'manual' }) {
   const amountXof = Math.round(Number(amount));
   if (!Number.isFinite(amountXof) || amountXof < config.payouts.minXof) throw err(`Montant minimum de retrait : ${config.payouts.minXof} FCFA.`);
+  if (amountXof > config.payouts.maxXof) throw err(`Montant maximum par retrait : ${config.payouts.maxXof.toLocaleString('fr-FR')} FCFA.`);
   if (!NETWORKS[network]) throw err('Choisissez Wave, Orange Money ou Free Money.');
   const local = normalizeSnPhone(phone);
   if (!local) throw err('Numéro sénégalais invalide (ex. 77 123 45 67).');
@@ -90,7 +92,7 @@ export async function createPayout(merchant, { amount, network, phone, accountNa
   });
 
   publish(`merchant:${merchant.id}`, 'balance', { reason: 'payout' });
-  execute(payout).catch((e) => failPayout(payout.id, e.message));
+  execute(payout, merchant).catch((e) => failPayout(payout.id, e.message));
   return payout;
 }
 
@@ -134,24 +136,12 @@ export async function failPayout(id, reason) {
   return p;
 }
 
-let banksCache = null;
-async function providerCode(network) {
-  if (!banksCache || banksCache.at < Date.now() - 3_600_000) {
-    const list = await bitnob.payoutBanks(config.payouts.country);
-    banksCache = { at: Date.now(), list: Array.isArray(list) ? list : list?.banks ?? list?.data ?? [] };
-  }
-  const bank = banksCache.list.find((b) => NETWORKS[network].match.test(`${b.name ?? ''} ${b.code ?? ''}`));
-  if (!bank) throw new Error(`${NETWORKS[network].label} n'est pas encore ouvert sur le corridor ${config.payouts.country} de ce compte Bitnob.`);
-  return bank.code ?? bank.bank_code ?? bank.id;
-}
-
-async function execute(p) {
+async function execute(p, merchant) {
   if (p.provider === 'simulated') {
     await setStatus(p.id, 'processing');
     setTimeout(() => completePayout(p.id).catch(() => {}), 2500).unref?.();
     return;
   }
-  const bankCode = await providerCode(p.network);
   const quote = await bitnob.payoutQuote({
     settlementAmount: p.amount_xof,
     country: config.payouts.country,
@@ -167,10 +157,11 @@ async function execute(p) {
     beneficiary: {
       destination_type: 'mobile_money',
       country: config.payouts.country,
-      network: NETWORKS[p.network].label,
+      network: NETWORKS[p.network].bitnob,
       account_name: p.account_name,
       account_number: accountNumber(p.phone),
-      bank_code: bankCode,
+      // Expéditeur exigé par le corridor SN : le marchand qui retire ses fonds
+      sender: { account_name: merchant.name, country: config.payouts.country },
     },
   });
   const fin = await bitnob.payoutFinalize(quoteId);
@@ -217,7 +208,7 @@ export async function maybeAutoPayout(merchant) {
   const { btc_sats: sats } = await balances(merchant.id);
   const availableXof = Math.floor((sats / 1e8) * rate.xofPerBtc);
   if (availableXof < Math.max(merchant.auto_payout_min_xof, config.payouts.minXof)) return null;
-  const amount = Math.floor((availableXof * AUTO_BUFFER) / 100) * 100;
+  const amount = Math.min(Math.floor((availableXof * AUTO_BUFFER) / 100) * 100, config.payouts.maxXof);
   try {
     const p = await createPayout(merchant, {
       amount,

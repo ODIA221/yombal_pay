@@ -122,7 +122,9 @@ const server = app.listen(config.port, () => {
   console.log(`   Webhook Bitnob à déclarer : ${config.publicUrl}/webhooks/bitnob`);
   if (demo) console.log(`   Compte démo : ${demo.email}${demo.password ? ` / mot de passe généré : ${demo.password}` : ' (mot de passe du .env)'}  ·  clé API ${demo.apiKey}`);
   if (!config.demoMode && !config.bitnob.webhookSecret)
-    console.warn('⚠️  BITNOB_WEBHOOK_SECRET absent : les webhooks seront reconfirmés via l’API Bitnob avant validation.');
+    console.warn(
+      '⚠️  BITNOB_WEBHOOK_SECRET absent : les paiements seront reconfirmés via l’API Bitnob, mais les événements de retrait non signés seront ignorés.',
+    );
   console.log('');
   startPoller();
 });

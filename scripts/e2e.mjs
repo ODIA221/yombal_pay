@@ -59,16 +59,16 @@ try {
     await sleep(250);
   }
   await sleep(300);
-  const K = { Authorization: 'Bearer sk_test_waxco_demo_2026', 'Content-Type': 'application/json' };
+  const K = { Authorization: 'Bearer sk_test_acs_demo_2026', 'Content-Type': 'application/json' };
 
   // ── Parcours de paiement ──────────────────────────────────────────────────
-  const buy = await fetch(`${SHOP}/buy/tote`, { method: 'POST', redirect: 'manual' });
+  const buy = await fetch(`${SHOP}/buy/dashiki`, { method: 'POST', redirect: 'manual' });
   const payUrl = buy.headers.get('location');
   check(buy.status === 303 && payUrl?.includes('/pay/chk_'), `Boutique → redirection vers ${payUrl}`);
   const id = payUrl.split('/pay/')[1];
 
   const c = await json(await fetch(`${API}/v1/checkouts/${id}`, { headers: K }));
-  check(c.status === 'pending' && c.amount === 5000 && c.amount_sats > 0 && c.payment_request, `Paiement ${c.amount} FCFA = ${c.amount_sats} sats, facture Lightning prête`);
+  check(c.status === 'pending' && c.amount === 12500 && c.amount_sats > 0 && c.payment_request, `Paiement ${c.amount} FCFA = ${c.amount_sats} sats, facture Lightning prête`);
 
   const ov0 = await json(await fetch(`${API}/v1/overview`, { headers: K }));
   const body = JSON.stringify({ id: 'evt_1', event: 'transfer.success', data: { reference: `yp_${id}`, status: 'paid' } });
@@ -98,7 +98,7 @@ try {
   check(again.status === 200 && (await json(again)).id === id, 'Référence déjà vue → paiement existant renvoyé, pas de doublon');
 
   // ── Clés et permissions ───────────────────────────────────────────────────
-  const pk = { Authorization: 'Bearer pk_test_waxco_demo_2026', 'Content-Type': 'application/json' };
+  const pk = { Authorization: 'Bearer pk_test_acs_demo_2026', 'Content-Type': 'application/json' };
   check((await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: pk, body: JSON.stringify({ amount: 2000 }) })).status === 201, 'Clé publique pk_ : création autorisée');
   check((await fetch(`${API}/v1/checkouts`, { headers: pk })).status === 403, 'Clé publique pk_ : lecture des paiements refusée');
   check((await fetch(`${API}/v1/checkouts`, { headers: { Authorization: 'Bearer sk_test_inventee' } })).status === 401, 'Clé secrète inconnue refusée (401)');
@@ -169,6 +169,15 @@ try {
   const list = await json(await me('/v1/payouts'));
   check(list.data.find((p) => p.id === payout.id)?.status === 'completed', 'Retrait confirmé (statut « Reçu »)');
   check(before - payout.source_amount >= 0, 'Registre cohérent après retrait');
+
+  // Un échec signé arrivé après la confirmation ne doit ni changer le statut ni rembourser
+  const lateFail = JSON.stringify({ id: 'evt_po_late', event: 'payouts.withdrawal.failed', data: { reference: payout.reference } });
+  const lateSig = crypto.createHmac('sha512', BITNOB_WEBHOOK_SECRET).update(lateFail).digest('hex');
+  const solde0 = (await json(await me('/v1/overview'))).balance.btc.sats;
+  await fetch(`${API}/webhooks/bitnob`, { method: 'POST', headers: { 'x-bitnob-signature': lateSig }, body: lateFail });
+  const after = await json(await me('/v1/payouts'));
+  const solde1 = (await json(await me('/v1/overview'))).balance.btc.sats;
+  check(after.data.find((p) => p.id === payout.id)?.status === 'completed' && solde1 === solde0, 'Échec tardif d’un retrait reçu : ni changement de statut, ni remboursement');
 
   // ── Équipe : caissier ─────────────────────────────────────────────────────
   const st = await me('/v1/staff', { method: 'POST', body: { name: 'Moussa', email: 'moussa@test.sn', password: 'caisse2026' } });
