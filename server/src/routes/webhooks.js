@@ -8,6 +8,7 @@ import { one, query } from '../db/pool.js';
 import { verifyBitnobWebhook } from '../lib/bitnob.js';
 import { findByInvoice, getCheckout, markPaid, refreshFromBitnob } from '../lib/payments.js';
 import { handlePayoutEvent } from '../lib/payouts.js';
+import { handleDeposit } from '../lib/stablecoins.js';
 
 export const webhookRouter = express.Router();
 
@@ -21,6 +22,16 @@ export async function processBitnobEvent(body, { verified }) {
   const type = String(body?.event || body?.type || '');
   const data = body?.data ?? body ?? {};
   const eventId = body?.id || body?.event_id;
+
+  // Dépôts stablecoin (paiement en USDT / USDC)
+  if (/^deposit/i.test(type)) {
+    const key = eventId ? `evt:${eventId}` : `${type}:${data?.transaction_id || data?.hash}`;
+    if (await alreadyProcessed(key)) return { status: 'duplicate', key };
+    const r = await handleDeposit(data, { verified });
+    // Un événement non signé ne « consomme » pas l'identifiant : le vrai, signé, passera ensuite
+    if (verified && !r.retry) await markProcessed(key);
+    return r;
+  }
 
   // Retraits mobile money
   if (/payout|withdrawal/i.test(type)) {
@@ -88,7 +99,8 @@ webhookRouter.post('/bitnob', express.raw({ type: '*/*', limit: '1mb' }), async 
   try {
     const result = await processBitnobEvent(body, { verified });
     console.log(`📩 Webhook Bitnob ${body?.event || body?.type} →`, result);
-    res.json({ received: true, ...result });
+    // Transaction pas encore réglée chez Bitnob : code 503 pour que Bitnob renvoie l'événement plus tard
+    res.status(result.retry ? 503 : 200).json({ received: true, ...result });
   } catch (err) {
     console.error('Erreur webhook', err);
     // 200 quand même : la vérification serveur périodique rattrapera le paiement

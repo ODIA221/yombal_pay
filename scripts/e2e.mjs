@@ -100,6 +100,45 @@ try {
   const again = await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: K, body: JSON.stringify({ amount: 5000, reference: c.reference }) });
   check(again.status === 200 && (await json(again)).id === id, 'Référence déjà vue → paiement existant renvoyé, pas de doublon');
 
+  // ── Paiement en USDT (adresse de dépôt Bitnob + deposit.success) ───────────
+  const signed = (evt) => {
+    const raw = JSON.stringify(evt);
+    return fetch(`${API}/webhooks/bitnob`, { method: 'POST', headers: { 'x-bitnob-signature': crypto.createHmac('sha512', BITNOB_WEBHOOK_SECRET).update(raw).digest('hex') }, body: raw });
+  };
+  const u0 = await json(await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: K, body: JSON.stringify({ amount: 12000, reference: 'usdt-1' }) }));
+  check(u0.usdt?.available && u0.usdt.amount === '20.00', `Paiement de 12 000 FCFA payable en ${u0.usdt?.amount} USDT`);
+  const u1 = await json(await fetch(`${API}/v1/checkouts/${u0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'tron' }) }));
+  const tronAddr = u1.usdt?.addresses?.[0]?.address;
+  check(/^T\w{33}$/.test(tronAddr || ''), `Adresse de dépôt Tron générée : ${tronAddr}`);
+  const u2 = await json(await fetch(`${API}/v1/checkouts/${u0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'tron' }) }));
+  check(u2.usdt.addresses.length === 1 && u2.usdt.addresses[0].address === tronAddr, 'Même réseau → même adresse (idempotent)');
+  check((await fetch(`${API}/v1/checkouts/${u0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'dogecoin' }) })).status === 422, 'Réseau non proposé refusé');
+
+  const usdtBefore = (await json(await fetch(`${API}/v1/overview`, { headers: K }))).balance.usdt.micro;
+  const dep = (n, micro) => ({ event: 'deposit.success', event_id: `evt_dep_${n}`, transaction_id: `tx_dep_${n}`, address: tronAddr, chain: 'tron', currency: 'USDT', amount: String(micro), hash: `0xhash${n}` });
+  const forged = await fetch(`${API}/webhooks/bitnob`, { method: 'POST', headers: { 'x-bitnob-signature': 'deadbeef' }, body: JSON.stringify(dep(0, 20_000_000)) });
+  check(forged.status === 401, 'Dépôt USDT non signé rejeté (401)');
+  const part = await json(await signed(dep(1, 5_000_000)));
+  const afterPart = await json(await fetch(`${API}/v1/checkouts/${u0.id}`));
+  check(part.status === 'pending' && afterPart.usdt.received === '5.00', 'Dépôt partiel (5 USDT) : paiement toujours en attente, reçu affiché');
+  const full = await json(await signed(dep(2, 15_000_000)));
+  const afterFull = await json(await fetch(`${API}/v1/checkouts/${u0.id}`));
+  check(full.status === 'paid' && afterFull.pay_asset === 'USDT', 'Reste envoyé (15 USDT) → paiement « Payé » en USDT');
+  check((await json(await signed(dep(2, 15_000_000)))).status === 'duplicate', 'Rejeu du dépôt ignoré');
+  const usdtAfter = (await json(await fetch(`${API}/v1/overview`, { headers: K }))).balance.usdt.micro;
+  check(usdtAfter - usdtBefore === 19_800_000, `Registre : +${(usdtAfter - usdtBefore) / 1e6} USDT crédités (20 USDT moins 1 %)`);
+  const extra = await json(await signed(dep(3, 1_000_000)));
+  const usdtExtra = (await json(await fetch(`${API}/v1/overview`, { headers: K }))).balance.usdt.micro;
+  check(extra.extra && usdtExtra - usdtAfter === 990_000, 'Dépôt arrivé après paiement : crédité quand même (commission déduite)');
+  check((await json(await signed({ ...dep(4, 1_000_000), address: 'Tinconnue' }))).status === 'ignored', 'Dépôt sur une adresse inconnue ignoré');
+
+  const s0 = await json(await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: K, body: JSON.stringify({ amount: 3000, reference: 'usdt-sim' }) }));
+  await fetch(`${API}/v1/checkouts/${s0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'polygon' }) });
+  const sim = await json(await fetch(`${API}/v1/checkouts/${s0.id}/simulate-payment`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ asset: 'USDT' }) }));
+  check(sim.checkout.status === 'paid' && sim.checkout.pay_asset === 'USDT', 'Démo : dépôt USDT simulé sur Polygon → « Payé »');
+  const tiny = await json(await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: K, body: JSON.stringify({ amount: 500, reference: 'usdt-tiny' }) }));
+  check(tiny.usdt.available === false, 'Moins de 2 USDT : option USDT masquée');
+
   // ── Clés et permissions ───────────────────────────────────────────────────
   const pk = { Authorization: 'Bearer pk_test_acs_demo_2026', 'Content-Type': 'application/json' };
   check((await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: pk, body: JSON.stringify({ amount: 2000 }) })).status === 201, 'Clé publique pk_ : création autorisée');

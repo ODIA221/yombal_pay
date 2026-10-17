@@ -14,7 +14,12 @@ import { cleanHttpUrl } from './security.js';
 export const MIN_XOF = 100;
 export const MAX_XOF = 5_000_000;
 
-const SELECT = `SELECT c.*, m.name AS merchant_name, m.username AS merchant_username FROM checkouts c JOIN merchants m ON m.id = c.merchant_id`;
+const SELECT = `SELECT c.*, m.name AS merchant_name, m.username AS merchant_username,
+  (SELECT json_agg(json_build_object('chain', a.chain, 'address', a.address) ORDER BY a.created_at) FROM checkout_addresses a WHERE a.checkout_id = c.id) AS usdt_addresses
+  FROM checkouts c JOIN merchants m ON m.id = c.merchant_id`;
+
+// Montant attendu en USDT (micro-USDT, arrondi au centime supérieur), au taux USD/FCFA de la passerelle
+export const usdtExpectedMicro = (amountXof) => Math.ceil((amountXof / config.rates.usdToXof) * 100) * 10_000;
 
 // Frais évités par rapport à un transfert classique, nets de la commission YombalPay (jamais négatif)
 export function savingsXof(amountXof, feeXof) {
@@ -41,11 +46,24 @@ export function publicCheckout(c) {
     created_at: c.created_at,
     paid_at: c.paid_at,
     demo: c.demo,
+    pay_asset: c.pay_asset ?? 'BTC',
+    usdt: usdtView(c),
     savings: {
       xof: savingsXof(c.amount_xof, c.amount_sats ? (c.fee_sats * c.amount_xof) / c.amount_sats : 0),
       benchmark_pct: config.savingsBenchmarkBps / 100,
     },
     metadata: c.metadata ?? {},
+  };
+}
+
+function usdtView(c) {
+  const expected = c.usdt_amount_micro ?? usdtExpectedMicro(c.amount_xof);
+  return {
+    available: config.usdt.chains.length > 0 && expected >= config.usdt.minUsdt * 1e6,
+    amount: (expected / 1e6).toFixed(2),
+    chains: config.usdt.chains,
+    addresses: c.usdt_addresses ?? [],
+    received: c.usdt_received_micro ? (c.usdt_received_micro / 1e6).toFixed(2) : null,
   };
 }
 
@@ -156,12 +174,13 @@ export async function createCheckout(merchant, input) {
 }
 
 // Passage à « payé » : atomique (UPDATE … WHERE status = 'pending') et idempotent, quelle que soit la source.
-export async function markPaid(checkoutId, { by, preimage } = {}) {
+// asset = 'USDT' : dépôt stablecoin, accepté même après l'expiration de la facture Lightning (l'argent est arrivé).
+export async function markPaid(checkoutId, { by, preimage, asset = 'BTC' } = {}) {
   const paid = await tx(async (client) => {
     const c = await one(
-      `UPDATE checkouts SET status = 'paid', paid_at = now(), confirmed_by = $2, preimage = COALESCE($3, preimage)
-       WHERE id = $1 AND status = 'pending' RETURNING *`,
-      [checkoutId, by, preimage || null],
+      `UPDATE checkouts SET status = 'paid', paid_at = now(), confirmed_by = $2, preimage = COALESCE($3, preimage), pay_asset = $4
+       WHERE id = $1 AND (status = 'pending' OR ($4 = 'USDT' AND status = 'expired')) RETURNING *`,
+      [checkoutId, by, preimage || null, asset],
       client,
     );
     if (c) await creditPayment(client, c);
@@ -175,7 +194,8 @@ export async function markPaid(checkoutId, { by, preimage } = {}) {
   publish(`merchant:${c.merchant_id}`, 'checkout', view);
   publish(`merchant:${c.merchant_id}`, 'balance', { reason: 'payment' });
   notifyMerchant(c, 'checkout.paid');
-  console.log(`✅ Paiement ${c.id} (${c.amount_xof} FCFA / ${c.amount_sats} sats) confirmé par ${by}`);
+  console.log(`✅ Paiement ${c.id} (${c.amount_xof} FCFA en ${asset}) confirmé par ${by}`);
+  if (asset !== 'BTC') return true;
 
   const merchant = await one('SELECT * FROM merchants WHERE id = $1', [c.merchant_id]);
   // Conversion USDT puis retrait automatique (réglages du marchand), au mieux, sans bloquer la confirmation

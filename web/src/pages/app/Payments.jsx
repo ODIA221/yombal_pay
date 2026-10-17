@@ -123,8 +123,13 @@ export default function Payments() {
 function PaymentDetail({ c, onClose }) {
   const rows = [
     ['Montant', fcfa(c.amount)],
-    ['Montant Bitcoin', `${num(c.amount_sats)} sats`],
-    ...(c.fee_sats !== undefined
+    ...(c.pay_asset === 'USDT'
+      ? [
+          ['Payé en', `${c.usdt.received} USDT (stablecoin)`],
+          ['Réseau', c.usdt.addresses.map((a) => a.chain).join(', ')],
+        ]
+      : [['Montant Bitcoin', `${num(c.amount_sats)} sats`]]),
+    ...(c.fee_sats !== undefined && c.pay_asset !== 'USDT'
       ? [
           ['Commission YombalPay', `${num(c.fee_sats)} sats`],
           ['Net crédité', c.status === 'paid' ? `${num(c.amount_sats - c.fee_sats)} sats` : '-'],

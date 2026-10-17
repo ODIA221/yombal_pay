@@ -34,17 +34,25 @@ export async function balancesView(merchantId) {
 }
 
 // Crédit d'un paiement confirmé (dans la transaction qui le passe à « payé »)
+// Commission sur un montant USDT, au taux (points de base) appliqué à la création du paiement
+export const usdtFee = (c, micro) => Math.floor((micro * Math.round((c.fee_sats * 10_000) / c.amount_sats)) / 10_000);
+
+// Paiement en USDT : on crédite le montant réellement reçu, commission au même taux que pour le Bitcoin.
 export async function creditPayment(client, c) {
+  const usdt = c.pay_asset === 'USDT';
+  const asset = usdt ? 'USDT' : 'BTC';
+  const amount = usdt ? Number(c.usdt_received_micro) : Number(c.amount_sats);
+  const fee = usdt ? usdtFee(c, amount) : Number(c.fee_sats);
   await client.query(
-    `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description, demo) VALUES ($1, 'BTC', $2, 'payment', $3, $4, $5)
+    `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description, demo) VALUES ($1, $2, $3, 'payment', $4, $5, $6)
      ON CONFLICT DO NOTHING`,
-    [c.merchant_id, c.amount_sats, c.id, `Paiement ${c.reference}`, c.demo],
+    [c.merchant_id, asset, amount, c.id, `Paiement ${c.reference}${usdt ? ' (USDT)' : ''}`, c.demo],
   );
-  if (c.fee_sats > 0)
+  if (fee > 0)
     await client.query(
-      `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description, demo) VALUES ($1, 'BTC', $2, 'fee', $3, 'Commission YombalPay', $4)
+      `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description, demo) VALUES ($1, $2, $3, 'fee', $4, 'Commission YombalPay', $5)
        ON CONFLICT DO NOTHING`,
-      [c.merchant_id, -c.fee_sats, c.id, c.demo],
+      [c.merchant_id, asset, -fee, c.id, c.demo],
     );
 }
 
@@ -121,7 +129,7 @@ export async function stats(merchantId) {
   const s = await one(
     `SELECT
        COALESCE(SUM(amount_xof) FILTER (WHERE status = 'paid'), 0)::bigint AS total_xof,
-       COALESCE(SUM(amount_sats) FILTER (WHERE status = 'paid'), 0)::bigint AS total_sats,
+       COALESCE(SUM(amount_sats) FILTER (WHERE status = 'paid' AND pay_asset = 'BTC'), 0)::bigint AS total_sats,
        COUNT(*) FILTER (WHERE status = 'paid')::int AS paid_count,
        COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_count,
        COUNT(*)::int AS checkout_count,

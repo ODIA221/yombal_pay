@@ -121,6 +121,13 @@ export const bitnob = {
 
   getBalances: () => request('GET', '/api/balances'),
 
+  // ── Stablecoins : adresse de dépôt par paiement, puis webhook deposit.success ──
+  // POST /api/addresses : chain (tron, bsc, polygon…), label, reference (idempotence)
+  createAddress: ({ chain, label, reference }) => request('POST', '/api/addresses', { chain, label, reference }),
+  supportedChains: () => request('GET', '/api/stablecoins/supported-chains'),
+  // GET /api/transactions/:id (UUID ou référence) : state SETTLED, amount en plus petite unité
+  getTransaction: (id) => request('GET', `/api/transactions/${encodeURIComponent(id)}`),
+
   // ── Payouts (retrait vers mobile money) : quote → initialize → finalize ──
   payoutCountries: () => request('GET', '/api/payouts/supported-countries'),
   payoutRequirements: (country) => request('GET', `/api/payouts/supported-countries/${encodeURIComponent(country)}`),

@@ -25,6 +25,7 @@ import {
 } from '../lib/payments.js';
 import { assertSafeWebhookUrl, audit, hashPassword, randomToken, rateLimit, verifyPassword } from '../lib/security.js';
 import { processBitnobEvent } from './webhooks.js';
+import { depositAddress } from '../lib/stablecoins.js';
 
 export const api = express.Router();
 api.use(express.json({ limit: '100kb' }));
@@ -129,6 +130,19 @@ api.post('/checkouts/:id/refresh', rateLimit({ name: 'refresh', limit: 20, windo
   res.json(publicCheckout(await getCheckout(c.id)));
 }));
 
+// Paiement en USDT / USDC : adresse de dépôt Bitnob propre à ce paiement, sur le réseau choisi par le client
+api.post('/checkouts/:id/usdt', rateLimit({ name: 'usdt-address', limit: 10, windowMs: 600_000 }), wrap(async (req, res) => {
+  const c = await getCheckout(req.params.id);
+  if (!c) return fail(res, 404, 'not_found', 'Paiement introuvable.');
+  try {
+    await depositAddress(c, String(req.body?.chain || '').toLowerCase());
+  } catch (e) {
+    if (e.status) return fail(res, e.status, 'usdt_unavailable', e.message);
+    return bitnobFail(res, e);
+  }
+  res.status(201).json(publicCheckout(await getCheckout(c.id)));
+}));
+
 // Mode démo : simule le webhook Bitnob (même chemin de code que le vrai webhook)
 api.post('/checkouts/:id/simulate-payment', wrap(async (req, res) => {
   if (!config.demoMode) return fail(res, 403, 'live_mode', 'Simulation désactivée en mode réel.');
@@ -136,6 +150,17 @@ api.post('/checkouts/:id/simulate-payment', wrap(async (req, res) => {
   if (!c) return fail(res, 404, 'not_found', 'Paiement introuvable.');
   // Une vraie facture Bitnob (créée en mode réel) ne se simule jamais, même si le serveur repasse en démo
   if (!c.demo) return fail(res, 403, 'live_checkout', 'Ce paiement est réel : il ne peut pas être simulé.');
+  // Dépôt USDT simulé sur la dernière adresse demandée (montant exact attendu)
+  const addr = req.body?.asset === 'USDT' ? c.usdt_addresses?.at(-1) : null;
+  if (req.body?.asset === 'USDT') {
+    if (!addr) return fail(res, 422, 'no_address', 'Choisissez d’abord un réseau USDT.');
+    const id = newId('bn_dep');
+    const result = await processBitnobEvent(
+      { event: 'deposit.success', event_id: id, transaction_id: id, address: addr.address, chain: addr.chain, currency: 'USDT', amount: String(c.usdt_amount_micro), hash: crypto.randomBytes(32).toString('hex') },
+      { verified: true },
+    );
+    return res.json({ simulated: true, result, checkout: publicCheckout(await getCheckout(c.id)) });
+  }
   const event = {
     id: newId('bn_evt'),
     event: 'transfer.success',

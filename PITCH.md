@@ -11,12 +11,12 @@ Ce que le jury regarde (curriculum Code & Chain) : **un vrai problème, une dém
 « Aïssatou tient African Costume Shop à Dakar : grands boubous, bazin et kaftans cousus main. Sa meilleure cliente, Fatou, vit à Paris. Fatou n'a pas Wave sénégalais, sa carte coûte 4 % et les passerelles Bitcoin étrangères ne versent pas un franc CFA. Et même si Aïssatou recevait du Bitcoin, elle aurait peur de la volatilité et ne saurait pas le transformer en argent pour payer son fournisseur. Résultat : la vente ne se fait pas. »
 
 **3. Solution (1:00 à 1:40)**
-« YombalPay, c'est la caisse Bitcoin des commerçants d'Afrique de l'Ouest. On ferme la boucle complète : le client paie en Lightning depuis n'importe où, le solde s'affiche en FCFA, la valeur est protégée en USDT, et Aïssatou retire sur Wave. Elle n'a jamais besoin de comprendre ce qu'est le Bitcoin. Trois produits Bitnob dans une seule application : Lightning, Trading, Payouts. »
+« YombalPay, c'est la caisse Bitcoin des commerçants d'Afrique de l'Ouest. On ferme la boucle complète : le client paie en Lightning ou en USDT depuis n'importe où, le solde s'affiche en FCFA, la valeur est protégée en USDT, et Aïssatou retire sur Wave. Elle n'a jamais besoin de comprendre ce qu'est le Bitcoin. Quatre produits Bitnob dans une seule application : Lightning, Stablecoins, Trading, Payouts. Et le client voit combien de frais il évite par rapport à un transfert classique. »
 
 **4. Démo live (1:40 à 3:40)** : voir la chorégraphie ci-dessous.
 
 **5. Sous le capot (3:40 à 4:30)**
-« Ce n'est pas une maquette. Il y a des comptes marchands, et une base Supabase dont le RLS bloque l'API publique. On tient un vrai registre comptable : le solde est la somme d'écritures qu'on ne modifie jamais. Le statut "payé" ne vient jamais du navigateur : il faut un webhook Bitnob signé HMAC-SHA512, reconfirmé par l'API Bitnob. Chaque débit passe par un verrou : on a testé cinq retraits simultanés, sans aucune double dépense. Un retrait exige le mot de passe. Les clés API sont stockées hachées. 64 tests de bout en bout, rejoués automatiquement sur GitHub à chaque modification. »
+« Ce n'est pas une maquette. Il y a des comptes marchands, et une base Supabase dont le RLS bloque l'API publique. On tient un vrai registre comptable : le solde est la somme d'écritures qu'on ne modifie jamais. Le statut "payé" ne vient jamais du navigateur : il faut un webhook Bitnob signé HMAC-SHA512, reconfirmé par l'API Bitnob. Chaque débit passe par un verrou : on a testé cinq retraits simultanés, sans aucune double dépense. Un retrait exige le mot de passe. Les clés API sont stockées hachées. 77 tests de bout en bout, rejoués automatiquement sur GitHub à chaque modification. »
 
 **6. Suite (4:30 à 5:00)**
 « Déjà là : comptes caissiers, retrait automatique, plugin WooCommerce, pages client en anglais pour la diaspora. Prochaines étapes : KYC marchand, Shopify, wolof. Chaque boutique sénégalaise devient accessible à la diaspora et au monde entier. YombalPay : parce que se faire payer doit être yombal, simple pour tout le monde. »
@@ -31,8 +31,9 @@ Préparez 3 onglets : l'espace marchand (`/app`), la caisse sur le téléphone (
 4. **Adresse Lightning** : « Fatou, à Paris, n'a même pas besoin d'un lien. » Montrez `africancostume@<domaine>` et payez-la depuis un portefeuille.
 5. **Portefeuille → Protéger en USDT (50 %)** : « Trading Bitnob. La volatilité ne fait plus peur. » Montrez le réglage de protection automatique.
 6. **Portefeuille → Retirer vers Wave** : 2 000 FCFA, numéro, mot de passe. Le statut passe à « Reçu ». « Payouts Bitnob. La boucle est bouclée. »
-7. Bonus diaspora : sur `/@africancostume` en anglais, cochez « I'm paying for a relative ». Le paiement apparaît chez le marchand comme « Pour Maman ».
-8. Si le temps le permet, ouvrez **Paiements**, puis la fiche d'un paiement, pour montrer la **preimage**, c'est-à-dire la preuve cryptographique du paiement.
+7. **Paiement en USDT** : sur une page de paiement, onglet « USDT ou USDC », choisissez Tron. « Fatou a des USDT sur Binance ? Une adresse Bitnob est créée pour ce seul paiement. » Envoyez depuis un vrai portefeuille, ou utilisez la simulation en démo. Le marchand est crédité en USDT, sans volatilité.
+8. Bonus diaspora : sur `/@africancostume` en anglais, cochez « I'm paying for a relative ». Le paiement apparaît chez le marchand comme « Pour Maman ».
+9. Si le temps le permet, ouvrez **Paiements**, puis la fiche d'un paiement, pour montrer la **preimage**, c'est-à-dire la preuve cryptographique du paiement.
 
 ## Check-list avant de monter sur scène
 

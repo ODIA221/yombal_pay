@@ -68,6 +68,15 @@ export const config = {
     dailyMaxXof: Number(process.env.PAYOUT_DAILY_MAX_XOF) || 2_000_000,
   },
 
+  // Paiement en stablecoins (USDT / USDC) : réseaux proposés au client (GET /api/stablecoins/supported-chains chez Bitnob)
+  usdt: {
+    chains: (process.env.USDT_CHAINS || 'tron,bsc,polygon').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
+    // Bitnob refuse les dépôts de moins de 1 $ : on exige au moins 2 USDT
+    minUsdt: Number(process.env.USDT_MIN) || 2,
+    // Écart toléré entre le montant attendu et le montant reçu (frais de retrait de certaines plateformes)
+    tolerancePct: Number(process.env.USDT_TOLERANCE_PCT ?? 1),
+  },
+
   // Durée de validité d'une facture Lightning (secondes). Le taux est garanti pendant ce temps.
   invoiceExpirySeconds: Number(process.env.INVOICE_EXPIRY_SECONDS) || 900,
   // Vérification serveur des factures en attente (filet de sécurité si un webhook se perd)

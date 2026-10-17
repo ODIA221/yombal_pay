@@ -21,3 +21,12 @@ if (sn) {
   await step('Exigences du corridor SN', () => bitnob.payoutRequirements('SN'));
   await step('Opérateurs mobile money SN', () => bitnob.payoutBanks('SN'));
 }
+
+// Paiement en USDT : les réseaux proposés aux clients (USDT_CHAINS) doivent être ouverts chez Bitnob
+const { config } = await import('../server/src/config.js');
+const chains = await step('Réseaux stablecoin (GET /api/stablecoins/supported-chains)', () => bitnob.supportedChains());
+if (chains) {
+  const names = JSON.stringify(chains).toLowerCase();
+  for (const c of config.usdt.chains)
+    console.log(names.includes(`"${c}"`) ? `✅ Réseau ${c} disponible` : `⚠️  Réseau ${c} absent de la liste Bitnob : retirez-le de USDT_CHAINS`);
+}
