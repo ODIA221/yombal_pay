@@ -169,6 +169,11 @@ function PaymentDetail({ c, onClose }) {
         <a className="btn ghost sm" href={`/pay/${c.id}`} target="_blank" rel="noreferrer">
           <Icon name="external" size={16} /> Page de paiement
         </a>
+        {c.status === 'paid' && (
+          <a className="btn ghost sm" href={`/recu/${c.id}`} target="_blank" rel="noreferrer">
+            <Icon name="external" size={16} /> Reçu
+          </a>
+        )}
         <CopyButton text={c.id} label="Copier l'identifiant" className="btn ghost sm" />
       </div>
     </Modal>
