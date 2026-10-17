@@ -16,6 +16,11 @@ export const MAX_XOF = 5_000_000;
 
 const SELECT = `SELECT c.*, m.name AS merchant_name, m.username AS merchant_username FROM checkouts c JOIN merchants m ON m.id = c.merchant_id`;
 
+// Frais évités par rapport à un transfert classique, nets de la commission YombalPay (jamais négatif)
+export function savingsXof(amountXof, feeXof) {
+  return Math.max(0, Math.round((amountXof * config.savingsBenchmarkBps) / 10_000 - feeXof));
+}
+
 export function publicCheckout(c) {
   return {
     id: c.id,
@@ -36,6 +41,10 @@ export function publicCheckout(c) {
     created_at: c.created_at,
     paid_at: c.paid_at,
     demo: c.demo,
+    savings: {
+      xof: savingsXof(c.amount_xof, c.amount_sats ? (c.fee_sats * c.amount_xof) / c.amount_sats : 0),
+      benchmark_pct: config.savingsBenchmarkBps / 100,
+    },
     metadata: c.metadata ?? {},
   };
 }

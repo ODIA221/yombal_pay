@@ -70,6 +70,8 @@ try {
   const c = await json(await fetch(`${API}/v1/checkouts/${id}`, { headers: K }));
   check(c.status === 'pending' && c.amount === 12500 && c.amount_sats > 0 && c.payment_request, `Paiement ${c.amount} FCFA = ${c.amount_sats} sats, facture Lightning prête`);
 
+  check(Math.abs(c.savings?.xof - 875) <= 1 && c.savings.benchmark_pct === 8, `Frais évités affichés au client : ${c.savings?.xof} FCFA (8 % moins la commission 1 %)`);
+
   const ov0 = await json(await fetch(`${API}/v1/overview`, { headers: K }));
   const body = JSON.stringify({ id: 'evt_1', event: 'transfer.success', data: { reference: `yp_${id}`, status: 'paid' } });
   const bad = await fetch(`${API}/webhooks/bitnob`, { method: 'POST', headers: { 'x-bitnob-signature': 'deadbeef' }, body });
@@ -86,6 +88,7 @@ try {
   const credited = ov1.balance.btc.sats - ov0.balance.btc.sats;
   const fee = Math.floor(c.amount_sats / 100);
   check(credited === c.amount_sats - fee, `Registre : +${credited} sats crédités (commission 1 % = ${fee} sats)`);
+  check(ov1.stats.savings_xof - ov0.stats.savings_xof === c.savings.xof, `Compteur marchand : +${ov1.stats.savings_xof - ov0.stats.savings_xof} FCFA de frais évités`);
 
   await sleep(800);
   const order = await json(await fetch(`${SHOP}/api/orders/${c.reference}`));

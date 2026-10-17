@@ -126,9 +126,11 @@ export async function stats(merchantId) {
        COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_count,
        COUNT(*)::int AS checkout_count,
        COALESCE(SUM(amount_xof) FILTER (WHERE status = 'paid' AND paid_at >= date_trunc('day', now())), 0)::bigint AS today_xof,
-       COUNT(*) FILTER (WHERE status = 'paid' AND paid_at >= date_trunc('day', now()))::int AS today_count
+       COUNT(*) FILTER (WHERE status = 'paid' AND paid_at >= date_trunc('day', now()))::int AS today_count,
+       COALESCE(SUM(GREATEST(0, ROUND(amount_xof * $3 / 10000.0 - fee_sats::numeric * amount_xof / NULLIF(amount_sats, 0))))
+         FILTER (WHERE status = 'paid'), 0)::bigint AS savings_xof
      FROM checkouts WHERE merchant_id = $1 AND (NOT demo OR $2)`,
-    [merchantId, config.demoMode],
+    [merchantId, config.demoMode, config.savingsBenchmarkBps],
   );
   const series = await many(
     `SELECT to_char(d, 'YYYY-MM-DD') AS day,
@@ -140,7 +142,7 @@ export async function stats(merchantId) {
     [merchantId, config.demoMode],
   );
   const finished = s.paid_count + (await one(`SELECT COUNT(*)::int AS n FROM checkouts WHERE merchant_id = $1 AND status = 'expired' AND (NOT demo OR $2)`, [merchantId, config.demoMode])).n;
-  return { ...s, conversion_rate: finished ? Math.round((s.paid_count / finished) * 100) : 0, series };
+  return { ...s, savings_benchmark_pct: config.savingsBenchmarkBps / 100, conversion_rate: finished ? Math.round((s.paid_count / finished) * 100) : 0, series };
 }
 
 export { query };

@@ -78,6 +78,15 @@ export default function Overview() {
         <Stat label="Taux de réussite" value={`${stats.conversion_rate} %`} sub="payés / terminés" />
       </section>
 
+      {stats.savings_xof > 0 && (
+        <p className="savings-banner">
+          <Icon name="shield" size={18} />
+          <span>
+            Vos clients ont évité <strong>{fcfa(stats.savings_xof)}</strong> de frais par rapport à un transfert d'argent classique ({stats.savings_benchmark_pct} % en moyenne).
+          </span>
+        </p>
+      )}
+
       <div className="grid-2">
         <section className="panel">
           <div className="panel-head">

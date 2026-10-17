@@ -112,6 +112,7 @@ export default function Pay() {
           </span>
         </div>
         <p className="desc">{c.description}</p>
+        {c.status === 'pending' && !expired && c.savings?.xof > 0 && <p className="savings">{t.savings(fcfa(c.savings.xof), c.savings.benchmark_pct)}</p>}
 
         {c.status === 'paid' ? (
           <div className="success">
@@ -127,6 +128,7 @@ export default function Pay() {
               <br />
               {t.merchantNotified}
             </p>
+            {c.savings?.xof > 0 && <p className="savings">{t.saved(fcfa(c.savings.xof))}</p>}
             {c.return_url && (
               <a className="btn primary wide" href={c.return_url}>
                 {t.backTo(c.merchant?.name)} {redirectIn ? `(${redirectIn})` : ''}

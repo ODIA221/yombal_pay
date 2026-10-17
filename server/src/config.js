@@ -52,6 +52,9 @@ export const config = {
 
   // Commission YombalPay par défaut sur chaque paiement (points de base : 100 = 1 %)
   feeBps: Number(process.env.YOMBALPAY_FEE_BPS ?? 100),
+  // Coût moyen d'un transfert d'argent classique vers l'Afrique subsaharienne (points de base), pour le compteur
+  // « frais évités ». Source : Banque mondiale, Remittance Prices Worldwide (≈ 8 %).
+  savingsBenchmarkBps: Number(process.env.SAVINGS_BENCHMARK_BPS) || 800,
 
   payouts: {
     // auto : simulé en mode démo, Bitnob en mode réel. Forcer « simulated » si le corridor SN n'est pas ouvert.

@@ -149,7 +149,9 @@ api.post('/checkouts/:id/simulate-payment', wrap(async (req, res) => {
 api.get('/public/merchants/:username', wrap(async (req, res) => {
   const m = await merchantByUsername(req.params.username);
   if (!m) return fail(res, 404, 'not_found', 'Marchand introuvable.');
-  res.json({ name: m.name, username: m.username, lightning_address: lightningAddress(m), min: MIN_XOF, max: MAX_XOF, demo: config.demoMode });
+  res.json({ name: m.name, username: m.username, lightning_address: lightningAddress(m), min: MIN_XOF, max: MAX_XOF, demo: config.demoMode,
+    savings: { benchmark_bps: config.savingsBenchmarkBps, fee_bps: m.fee_bps ?? config.feeBps },
+  });
 }));
 
 api.post(
