@@ -60,6 +60,8 @@ export const config = {
     currency: process.env.PAYOUT_CURRENCY || 'XOF',
     reason: process.env.PAYOUT_REASON || 'vendor_payment',
     minXof: Number(process.env.PAYOUT_MIN_XOF) || 500,
+    // Plafond par retrait du corridor SN mobile money chez Bitnob (limits.max_amount)
+    maxXof: Number(process.env.PAYOUT_MAX_XOF) || 200_000,
     dailyMaxXof: Number(process.env.PAYOUT_DAILY_MAX_XOF) || 2_000_000,
   },
 
@@ -71,14 +73,14 @@ export const config = {
   // Marchand de démonstration pré-rempli (boutique de démo + tableau de bord)
   seedDemo: process.env.SEED_DEMO !== 'false',
   demoMerchant: {
-    name: process.env.DEMO_MERCHANT_NAME || 'Wax & Co Dakar',
-    username: 'waxco',
+    name: process.env.DEMO_MERCHANT_NAME || 'African Costume Shop',
+    username: 'africancostume',
     // Identifiants du compte démo : uniquement dans .env (jamais dans le code, le dépôt est public)
     email: process.env.DEMO_MERCHANT_EMAIL || 'demo@yombalpay.sn',
     password: process.env.DEMO_MERCHANT_PASSWORD || '',
-    apiKey: process.env.DEMO_MERCHANT_KEY || 'sk_test_waxco_demo_2026',
-    publishableKey: process.env.DEMO_MERCHANT_PK || 'pk_test_waxco_demo_2026',
-    webhookSecret: process.env.DEMO_MERCHANT_WEBHOOK_SECRET || 'whsec_waxco_demo_2026',
+    apiKey: process.env.DEMO_MERCHANT_KEY || 'sk_test_acs_demo_2026',
+    publishableKey: process.env.DEMO_MERCHANT_PK || 'pk_test_acs_demo_2026',
+    webhookSecret: process.env.DEMO_MERCHANT_WEBHOOK_SECRET || 'whsec_acs_demo_2026',
     webhookUrl: process.env.DEMO_MERCHANT_WEBHOOK_URL || 'http://localhost:4000/webhooks/yombalpay',
   },
 };

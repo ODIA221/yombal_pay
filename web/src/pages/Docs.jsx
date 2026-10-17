@@ -14,7 +14,7 @@ export default function Docs() {
       </h2>
       <p>Aucun backend requis : collez cette balise là où le bouton doit apparaître. La clé publique ne peut que créer des paiements.</p>
       <Code lang="html">{`<script src="${origin}/sdk/yombalpay.js"
-        data-key="pk_test_waxco_demo_2026"
+        data-key="pk_test_acs_demo_2026"
         data-amount="5000"
         data-reference="CMD-42"></script>`}</Code>
 
@@ -42,7 +42,7 @@ app.post('/commander', async (req, res) => {
         <span className="num">C</span> API REST
       </h2>
       <Code lang="bash">{`curl -X POST ${origin}/v1/checkouts \\
-  -H "Authorization: Bearer sk_test_waxco_demo_2026" \\
+  -H "Authorization: Bearer sk_test_acs_demo_2026" \\
   -H "Content-Type: application/json" \\
   -d '{ "amount": 5000, "currency": "XOF", "reference": "CMD-42",
         "return_url": "https://maboutique.sn/merci" }'`}</Code>

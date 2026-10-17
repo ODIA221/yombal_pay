@@ -8,7 +8,7 @@ Ce que le jury regarde (curriculum Code & Chain) : **un vrai problème, une dém
 « Levez la main si vous avez déjà envoyé de l'argent à quelqu'un au Sénégal depuis l'étranger. Combien avez-vous payé de frais ? »
 
 **2. Problème (0:20 – 1:00)**
-« Aïssatou vend du wax à Dakar. Sa meilleure cliente, Fatou, vit à Paris. Fatou n'a pas Wave sénégalais, sa carte coûte 4 % et les passerelles Bitcoin étrangères ne versent pas un franc CFA. Et même si Aïssatou recevait du Bitcoin, elle aurait peur de la volatilité et ne saurait pas le transformer en argent pour payer son fournisseur. Résultat : la vente ne se fait pas. »
+« Aïssatou tient African Costume Shop à Dakar : grands boubous, bazin et kaftans cousus main. Sa meilleure cliente, Fatou, vit à Paris. Fatou n'a pas Wave sénégalais, sa carte coûte 4 % et les passerelles Bitcoin étrangères ne versent pas un franc CFA. Et même si Aïssatou recevait du Bitcoin, elle aurait peur de la volatilité et ne saurait pas le transformer en argent pour payer son fournisseur. Résultat : la vente ne se fait pas. »
 
 **3. Solution (1:00 – 1:40)**
 « YombalPay, c'est la caisse Bitcoin des commerçants d'Afrique de l'Ouest. On ferme la boucle complète : le client paie en Lightning depuis n'importe où, le solde s'affiche en FCFA, la valeur est protégée en USDT, et Aïssatou retire sur Wave. Elle n'a jamais besoin de comprendre ce qu'est le Bitcoin. Trois produits Bitnob dans une seule application : Lightning, Trading, Payouts. »
@@ -23,15 +23,15 @@ Ce que le jury regarde (curriculum Code & Chain) : **un vrai problème, une dém
 
 ## Chorégraphie de la démo (2 min)
 
-Préparez 3 onglets : l'espace marchand (`/app`), la caisse sur le téléphone (`/app/caisse`) et la page publique (`/@waxco`). Ayez aussi un portefeuille Lightning approvisionné sur un second téléphone.
+Préparez 3 onglets : l'espace marchand (`/app`), la caisse sur le téléphone (`/app/caisse`) et la page publique (`/@africancostume`). Ayez aussi un portefeuille Lightning approvisionné sur un second téléphone.
 
 1. **Caisse (téléphone)** : « Aïssatou est au marché. » Tapez **500**, puis **Encaisser**. Le QR s'affiche avec le montant en sats et un compte à rebours.
 2. **Un membre du jury scanne et paie** avec un vrai portefeuille. La caisse **sonne**, le grand ✓ vert s'affiche, et le toast « 500 FCFA reçus » apparaît sur l'écran projeté.
 3. **Espace marchand** : le solde et le graphique se mettent à jour en direct. « Voici le webhook Bitnob, vérifié puis reconfirmé. »
-4. **Adresse Lightning** : « Fatou, à Paris, n'a même pas besoin d'un lien. » Montrez `waxco@<domaine>` et payez-la depuis un portefeuille.
+4. **Adresse Lightning** : « Fatou, à Paris, n'a même pas besoin d'un lien. » Montrez `africancostume@<domaine>` et payez-la depuis un portefeuille.
 5. **Portefeuille → Protéger en USDT (50 %)** : « Trading Bitnob. La volatilité ne fait plus peur. » Montrez le réglage de protection automatique.
 6. **Portefeuille → Retirer vers Wave** : 2 000 FCFA, numéro, mot de passe. Le statut passe à « Reçu ». « Payouts Bitnob. La boucle est bouclée. »
-7. Bonus diaspora : sur `/@waxco` en anglais, cochez « I'm paying for a relative ». Le paiement apparaît chez le marchand comme « Pour Maman ».
+7. Bonus diaspora : sur `/@africancostume` en anglais, cochez « I'm paying for a relative ». Le paiement apparaît chez le marchand comme « Pour Maman ».
 8. Si le temps le permet, ouvrez **Paiements**, puis la fiche d'un paiement, pour montrer la **preimage**, c'est-à-dire la preuve cryptographique du paiement.
 
 ## Check-list avant de monter sur scène

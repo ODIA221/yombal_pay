@@ -88,7 +88,7 @@ banner() {
   echo "   🛍  Boutique de démo  : http://localhost:4000"
   echo "   💼 Espace marchand   : http://localhost:3000/app   (compte démo : $(grep -E '^DEMO_MERCHANT_EMAIL=' .env | cut -d= -f2-))"
   echo "   🧾 Caisse            : http://localhost:3000/app/caisse"
-  echo "   🌍 Page publique     : http://localhost:3000/@waxco"
+  echo "   🌍 Page publique     : http://localhost:3000/@africancostume"
   echo "   📖 Documentation     : http://localhost:3000/docs"
   [ "$MODE" = dev ] && echo "   ⚡ Front Vite (HMR)  : http://localhost:5173"
   echo

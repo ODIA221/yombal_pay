@@ -163,7 +163,7 @@ function NewLink({ onCreated }) {
         }}
       >
         <Field label="Article ou motif">
-          <input required maxLength={120} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Robe wax sur mesure" />
+          <input required maxLength={120} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Grand boubou brodé sur mesure" />
         </Field>
         <Field label="Montant">
           <div className="input-suffix">

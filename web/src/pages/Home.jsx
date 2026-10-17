@@ -5,6 +5,9 @@ import { useAuth } from '../lib/auth.jsx';
 import { fcfa, num } from '../lib/format.js';
 import { Bolt, Code, Icon } from '../components/ui.jsx';
 
+// Boutique de démo (dossier shop/) : servie à part, sur son propre port
+const SHOP_URL = import.meta.env.VITE_SHOP_URL || 'http://localhost:4000';
+
 export default function Home() {
   const { merchant } = useAuth();
   const [rate, setRate] = useState(null);
@@ -88,6 +91,50 @@ export default function Home() {
             <p>{text}</p>
           </div>
         ))}
+      </section>
+
+      <section className="story">
+        <div className="story-photos">
+          <img className="s1" src="/img/atelier-couture.jpg" alt="Couturière au travail dans un atelier" loading="lazy" />
+          <img className="s2" src="/img/grand-boubou-bleu.jpg" alt="Grand boubou brodé bleu ciel" loading="lazy" />
+          <img className="s3" src="/img/kente-sourire.jpg" alt="Femme souriante en kente" loading="lazy" />
+          <div className="story-toast">
+            <span className="toast-icon">
+              <Bolt size={18} />
+            </span>
+            <div>
+              <strong>+ 65 000 FCFA</strong>
+              <span>Grand boubou · payé depuis Paris</span>
+            </div>
+          </div>
+        </div>
+        <div className="story-copy">
+          <p className="eyebrow">Ils encaissent avec YombalPay</p>
+          <h2>Aïssatou habille la diaspora, de Dakar au monde entier.</h2>
+          <p className="lead">
+            Avec <strong>African Costume Shop</strong>, Aïssatou vend ses grands boubous, bazins et kaftans cousus main. Ses clientes de
+            Paris, Lyon ou Montréal paient en Lightning en quelques secondes. Elle, elle voit des FCFA et retire sur Wave le soir même.
+          </p>
+          <ul className="story-points">
+            <li>
+              <Icon name="globe" size={18} /> 0 carte bancaire, 0 frais de change pour sa cliente
+            </li>
+            <li>
+              <Icon name="shield" size={18} /> Une partie de chaque vente protégée en USDT
+            </li>
+            <li>
+              <Icon name="out" size={18} /> Retrait automatique sur Wave dès 50 000 FCFA
+            </li>
+          </ul>
+          <div className="cta">
+            <a className="btn primary" href={SHOP_URL} target="_blank" rel="noopener">
+              Visiter la boutique <Icon name="external" size={16} />
+            </a>
+            <Link className="btn ghost" to="/@africancostume">
+              Sa page de paiement
+            </Link>
+          </div>
+        </div>
       </section>
 
       <section className="pillars">
