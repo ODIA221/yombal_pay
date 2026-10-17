@@ -19,6 +19,7 @@ const NAV = [
   { to: '/app/caisse', label: 'Caisse', icon: 'pos' },
   { to: '/app/paiements', label: 'Paiements', icon: 'list' },
   { to: '/app/portefeuille', label: 'Portefeuille', icon: 'wallet' },
+  { to: '/app/epargne', label: 'Épargne', icon: 'lock' },
   { to: '/app/liens', label: 'Liens & QR', icon: 'link' },
   { to: '/app/developpeurs', label: 'Développeurs', icon: 'code' },
   { to: '/app/reglages', label: 'Réglages', icon: 'settings' },

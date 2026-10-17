@@ -33,14 +33,14 @@ Client (n'importe où) ── Lightning ou USDT ──▶ YombalPay ──▶ So
 | **« Payer pour un proche »** (diaspora), pages client **FR / EN** | **Retrait automatique** dès qu'un seuil est atteint | **Plugin WooCommerce** (`integrations/woocommerce`) |
 | **Comptes caissiers** : caisse et ventes uniquement | Journal d'activité du compte | |
 | **Paiement en USDT / USDC** (Tron, BNB Chain, Polygon) : adresse de dépôt Bitnob par paiement | **Paiements USDT crédités en USDT** : aucune volatilité | |
-| **Reçu de paiement** imprimable / PDF, avec preuve et QR de vérification | | |
+| **Reçu de paiement** imprimable / PDF, avec preuve et QR de vérification | **Épargne en USDT** : objectif (Tabaski…), % de chaque vente mis de côté, déblocage par mot de passe | |
 | **Frais évités** affichés au client avant et après paiement | **Compteur d'impact** : total des frais évités par vos clients | |
 
 ## Démarrage
 
 ```bash
 ./run.sh           # installe tout, crée la base, construit le front, lance passerelle :3000 + boutique :4000
-./run.sh test      # 81 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
+./run.sh test      # 90 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
 ./run.sh dev       # API rechargée à chaque modification + Vite :5173 + boutique
 ./run.sh check     # diagnostic de la connexion Bitnob
 ```

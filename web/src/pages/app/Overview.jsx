@@ -68,6 +68,12 @@ export default function Overview() {
         </div>
         <p className="balance-rate">
           1 BTC = {fcfa(balance.rate.xof_per_btc)} · {balance.rate.source}
+          {balance.savings?.micro > 0 && (
+            <>
+              {' · '}
+              <Link to="/app/epargne">Épargne : {fcfa(balance.savings.xof)}</Link>
+            </>
+          )}
         </p>
       </section>
 

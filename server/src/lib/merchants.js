@@ -124,6 +124,7 @@ export function merchantView(m) {
     publishable_key: m.publishable_key,
     fee_bps: m.fee_bps,
     auto_convert_pct: m.auto_convert_pct,
+    savings_pct: m.savings_pct,
     payout: m.payout_network ? { network: m.payout_network, phone: m.payout_phone, name: m.payout_name } : null,
     mode: config.demoMode ? 'demo' : 'live',
     payout_mode: config.payouts.mode,

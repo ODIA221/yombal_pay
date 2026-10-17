@@ -7,7 +7,8 @@ import { getXofPerBtc, xofToSats, satsToXof } from './rates.js';
 import { newId } from './ids.js';
 import { publish } from './bus.js';
 import { notifyMerchant } from './notifier.js';
-import { autoConvert, creditPayment } from './ledger.js';
+import { autoConvert, creditPayment, usdtFee } from './ledger.js';
+import { autoSave } from './savings.js';
 import { maybeAutoPayout } from './payouts.js';
 import { cleanHttpUrl } from './security.js';
 
@@ -203,11 +204,17 @@ export async function markPaid(checkoutId, { by, preimage, asset = 'BTC' } = {})
   publish(`merchant:${c.merchant_id}`, 'balance', { reason: 'payment' });
   notifyMerchant(c, 'checkout.paid');
   console.log(`✅ Paiement ${c.id} (${c.amount_xof} FCFA en ${asset}) confirmé par ${by}`);
-  if (asset !== 'BTC') return true;
 
   const merchant = await one('SELECT * FROM merchants WHERE id = $1', [c.merchant_id]);
-  // Conversion USDT puis retrait automatique (réglages du marchand), au mieux, sans bloquer la confirmation
+  if (asset !== 'BTC') {
+    // Paiement en USDT : déjà stable, seule l'épargne automatique s'applique
+    const net = Number(c.usdt_received_micro) - usdtFee(c, Number(c.usdt_received_micro));
+    autoSave(merchant, { usdtMicro: net }).catch(() => {});
+    return true;
+  }
+  // Conversion USDT, épargne puis retrait automatique (réglages du marchand), au mieux, sans bloquer la confirmation
   autoConvert(merchant, c.amount_sats - c.fee_sats)
+    .then(() => autoSave(merchant, { sats: c.amount_sats - c.fee_sats }))
     .then(() => maybeAutoPayout(merchant))
     .catch((err) => console.warn(`Automatisations ${merchant.id} : ${err.message}`));
   return true;

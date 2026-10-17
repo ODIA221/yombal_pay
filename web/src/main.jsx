@@ -12,6 +12,7 @@ import Overview from './pages/app/Overview.jsx';
 import Caisse from './pages/app/Caisse.jsx';
 import Payments from './pages/app/Payments.jsx';
 import Wallet from './pages/app/Wallet.jsx';
+import Epargne from './pages/app/Epargne.jsx';
 import Links from './pages/app/Links.jsx';
 import Developers from './pages/app/Developers.jsx';
 import Settings from './pages/app/Settings.jsx';
@@ -63,6 +64,7 @@ function Shell() {
           <Route path="caisse" element={<Caisse />} />
           <Route path="paiements" element={<Payments />} />
           <Route path="portefeuille" element={<Wallet />} />
+          <Route path="epargne" element={<Epargne />} />
           <Route path="liens" element={<Links />} />
           <Route path="developpeurs" element={<Developers />} />
           <Route path="reglages" element={<Settings />} />

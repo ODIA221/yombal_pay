@@ -14,6 +14,8 @@ const LEDGER_LABEL = {
   conversion_in: 'Conversion depuis BTC',
   payout: 'Retrait',
   payout_reversal: 'Retrait remboursé',
+  savings_in: 'Mis de côté (épargne)',
+  savings_out: 'Épargne débloquée',
 };
 
 export default function Wallet() {
@@ -33,7 +35,8 @@ export default function Wallet() {
     setOverview(o);
     setPayouts(p);
     setConversions(c.data);
-    setLedger(l.data);
+    // Le registre du portefeuille montre le solde disponible ; les mouvements internes à l’épargne sont sur sa page
+    setLedger(l.data.filter((e) => e.pocket !== 'savings'));
   }, []);
   useEffect(() => {
     load();
