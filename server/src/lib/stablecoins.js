@@ -1,11 +1,12 @@
 // Paiement en stablecoins (USDT / USDC) : une adresse de dépôt Bitnob par paiement et par réseau,
 // puis webhook deposit.success signé, reconfirmé par GET /api/transactions/:id avant de créditer.
+// Chaque dépôt est crédité dès son arrivée ; le paiement passe à « Payé » quand le total atteint le montant attendu.
 import crypto from 'node:crypto';
 import { config } from '../config.js';
 import { one, tx } from '../db/pool.js';
 import { bitnob } from './bitnob.js';
 import { publish } from './bus.js';
-import { usdtFee } from './ledger.js';
+import { creditDeposit } from './ledger.js';
 import { getCheckout, markPaid, publicCheckout, usdtExpectedMicro } from './payments.js';
 
 const err = (message, status = 422) => Object.assign(new Error(message), { status });
@@ -91,24 +92,17 @@ export async function handleDeposit(d, { verified }) {
       [txId, c.id, addr.address, addr.chain, currency, micro, d.hash || null],
     );
     if (!inserted.rowCount) return null;
-    if (row.status === 'paid') {
-      // Dépôt arrivé après le paiement (double envoi, ou paiement déjà réglé en Lightning) : l'argent est quand même crédité
-      const net = micro - usdtFee(c, micro);
-      await client.query(
-        `INSERT INTO ledger_entries (merchant_id, asset, amount, type, description, demo) VALUES ($1, 'USDT', $2, 'payment_extra', $3, $4)`,
-        [c.merchant_id, net, `Dépôt supplémentaire ${currency} sur ${c.reference} (commission déduite)`, c.demo],
-      );
-      return 'extra';
-    }
+    // L'argent reçu est toujours crédité : paiement complet, partiel, ou dépôt arrivé après le paiement
+    await creditDeposit(client, c, { depositId: txId, micro, currency });
+    // Paiement déjà réglé (double envoi, ou payé entre-temps en Lightning) : rien d'autre à faire
+    if (row.status === 'paid') return 'extra';
     const r = await one('SELECT SUM(amount_micro)::bigint AS total FROM deposits WHERE checkout_id = $1', [c.id], client);
     await client.query('UPDATE checkouts SET usdt_received_micro = $2 WHERE id = $1', [c.id, r.total]);
     return Number(r.total);
   });
   if (received === null) return { status: 'duplicate', checkout: c.id };
-  if (received === 'extra') {
-    publish(`merchant:${c.merchant_id}`, 'balance', { reason: 'payment' });
-    return { status: 'paid', checkout: c.id, extra: true };
-  }
+  publish(`merchant:${c.merchant_id}`, 'balance', { reason: 'payment' });
+  if (received === 'extra') return { status: 'paid', checkout: c.id, extra: true };
 
   const expected = c.usdt_amount_micro ?? usdtExpectedMicro(c.amount_xof);
   if (received >= expected * (1 - config.usdt.tolerancePct / 100)) {

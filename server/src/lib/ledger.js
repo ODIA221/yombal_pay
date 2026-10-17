@@ -37,22 +37,36 @@ export async function balancesView(merchantId) {
 // Commission sur un montant USDT, au taux (points de base) appliqué à la création du paiement
 export const usdtFee = (c, micro) => Math.floor((micro * Math.round((c.fee_sats * 10_000) / c.amount_sats)) / 10_000);
 
-// Paiement en USDT : on crédite le montant réellement reçu, commission au même taux que pour le Bitcoin.
+// Paiement Lightning : crédit en sats. Un paiement en USDT est déjà crédité dépôt par dépôt (creditDeposit).
 export async function creditPayment(client, c) {
-  const usdt = c.pay_asset === 'USDT';
-  const asset = usdt ? 'USDT' : 'BTC';
-  const amount = usdt ? Number(c.usdt_received_micro) : Number(c.amount_sats);
-  const fee = usdt ? usdtFee(c, amount) : Number(c.fee_sats);
+  if (c.pay_asset === 'USDT') return;
   await client.query(
-    `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description, demo) VALUES ($1, $2, $3, 'payment', $4, $5, $6)
+    `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description, demo) VALUES ($1, 'BTC', $2, 'payment', $3, $4, $5)
      ON CONFLICT DO NOTHING`,
-    [c.merchant_id, asset, amount, c.id, `Paiement ${c.reference}${usdt ? ' (USDT)' : ''}`, c.demo],
+    [c.merchant_id, c.amount_sats, c.id, `Paiement ${c.reference}`, c.demo],
   );
+  if (c.fee_sats > 0)
+    await client.query(
+      `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description, demo) VALUES ($1, 'BTC', $2, 'fee', $3, 'Commission YombalPay', $4)
+       ON CONFLICT DO NOTHING`,
+      [c.merchant_id, -c.fee_sats, c.id, c.demo],
+    );
+}
+
+// Dépôt stablecoin : crédité dès son arrivée, qu'il complète le paiement, soit partiel ou arrive après coup.
+// Les index uniques (type, deposit_id) empêchent tout double crédit.
+export async function creditDeposit(client, c, { depositId, micro, currency }) {
+  await client.query(
+    `INSERT INTO ledger_entries (merchant_id, asset, amount, type, deposit_id, description, demo) VALUES ($1, 'USDT', $2, 'payment', $3, $4, $5)
+     ON CONFLICT DO NOTHING`,
+    [c.merchant_id, micro, depositId, `Paiement ${c.reference} (${currency})`, c.demo],
+  );
+  const fee = usdtFee(c, micro);
   if (fee > 0)
     await client.query(
-      `INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description, demo) VALUES ($1, $2, $3, 'fee', $4, 'Commission YombalPay', $5)
+      `INSERT INTO ledger_entries (merchant_id, asset, amount, type, deposit_id, description, demo) VALUES ($1, 'USDT', $2, 'fee', $3, 'Commission YombalPay', $4)
        ON CONFLICT DO NOTHING`,
-      [c.merchant_id, asset, -fee, c.id, c.demo],
+      [c.merchant_id, -fee, depositId, c.demo],
     );
 }
 

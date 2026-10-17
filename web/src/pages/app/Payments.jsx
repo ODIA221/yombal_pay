@@ -123,9 +123,9 @@ export default function Payments() {
 function PaymentDetail({ c, onClose }) {
   const rows = [
     ['Montant', fcfa(c.amount)],
-    ...(c.pay_asset === 'USDT'
+    ...(c.pay_asset === 'USDT' || c.usdt?.received
       ? [
-          ['Payé en', `${c.usdt.received} USDT (stablecoin)`],
+          [c.status === 'paid' ? 'Payé en' : 'Déjà reçu (crédité)', `${c.usdt.received} sur ${c.usdt.amount} USDT`],
           ['Réseau', c.usdt.addresses.map((a) => a.chain).join(', ')],
         ]
       : [['Montant Bitcoin', `${num(c.amount_sats)} sats`]]),

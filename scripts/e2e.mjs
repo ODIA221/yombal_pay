@@ -132,6 +132,14 @@ try {
   check(extra.extra && usdtExtra - usdtAfter === 990_000, 'Dépôt arrivé après paiement : crédité quand même (commission déduite)');
   check((await json(await signed({ ...dep(4, 1_000_000), address: 'Tinconnue' }))).status === 'ignored', 'Dépôt sur une adresse inconnue ignoré');
 
+  const p0 = await json(await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: K, body: JSON.stringify({ amount: 12000, reference: 'usdt-partiel' }) }));
+  const p1 = await json(await fetch(`${API}/v1/checkouts/${p0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'bsc' }) }));
+  const bscAddr = p1.usdt.addresses[0].address;
+  const usdtPre = (await json(await fetch(`${API}/v1/overview`, { headers: K }))).balance.usdt.micro;
+  const pr = await json(await signed({ ...dep(5, 3_000_000), address: bscAddr, chain: 'bsc' }));
+  const usdtPost = (await json(await fetch(`${API}/v1/overview`, { headers: K }))).balance.usdt.micro;
+  check(pr.status === 'pending' && usdtPost - usdtPre === 2_970_000, 'Paiement partiel jamais complété : les 3 USDT reçus sont quand même crédités');
+
   const s0 = await json(await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: K, body: JSON.stringify({ amount: 3000, reference: 'usdt-sim' }) }));
   await fetch(`${API}/v1/checkouts/${s0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'polygon' }) });
   const sim = await json(await fetch(`${API}/v1/checkouts/${s0.id}/simulate-payment`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ asset: 'USDT' }) }));
