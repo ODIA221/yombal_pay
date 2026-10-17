@@ -55,9 +55,10 @@ export const config = {
 
   // Commission YombalPay par défaut sur chaque paiement (points de base : 100 = 1 %)
   feeBps: Number(process.env.YOMBALPAY_FEE_BPS ?? 100),
-  // Coût moyen d'un transfert d'argent classique vers l'Afrique subsaharienne (points de base), pour le compteur
-  // « frais évités ». Source : Banque mondiale, Remittance Prices Worldwide (≈ 8 %).
-  savingsBenchmarkBps: Number(process.env.SAVINGS_BENCHMARK_BPS) || 800,
+  // Coût d'un envoi d'argent classique vers le Sénégal (points de base), pour le compteur « frais évités ».
+  // Banque mondiale, Remittance Prices Worldwide : ≈ 3,5 à 5 % pour 200 € France → Sénégal (8,8 % en moyenne
+  // vers l'Afrique subsaharienne). On retient 5 %, prudent pour le couloir sénégalais.
+  savingsBenchmarkBps: Number(process.env.SAVINGS_BENCHMARK_BPS) || 500,
 
   payouts: {
     // auto : simulé en mode démo, Bitnob en mode réel. Forcer « simulated » si le corridor SN n'est pas ouvert.
