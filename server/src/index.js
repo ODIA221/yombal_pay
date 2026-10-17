@@ -20,7 +20,9 @@ const sdkDir = path.resolve(here, '../../sdk');
 const app = express();
 app.disable('x-powered-by');
 // Seuls les proxys locaux (cloudflared / ngrok) sont dignes de confiance pour X-Forwarded-For
-app.set('trust proxy', process.env.TRUST_PROXY || 'loopback');
+// Derrière un hébergeur (Render, Railway…) : TRUST_PROXY=1 (nombre de proxys), pour lire la vraie IP du client
+const trustProxy = process.env.TRUST_PROXY || 'loopback';
+app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
 
 app.use(
   helmet({

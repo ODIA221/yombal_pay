@@ -81,7 +81,8 @@ export const config = {
     // Identifiants du compte démo : uniquement dans .env (jamais dans le code, le dépôt est public)
     email: process.env.DEMO_MERCHANT_EMAIL || 'demo@yombalpay.sn',
     password: process.env.DEMO_MERCHANT_PASSWORD || '',
-    apiKey: process.env.DEMO_MERCHANT_KEY || 'sk_test_acs_demo_2026',
+    // Une valeur générée par l'hébergeur (sans préfixe) reçoit « sk_ », comme dans shop/server.js
+    apiKey: process.env.DEMO_MERCHANT_KEY ? process.env.DEMO_MERCHANT_KEY.replace(/^(?!sk_)/, 'sk_') : 'sk_test_acs_demo_2026',
     publishableKey: process.env.DEMO_MERCHANT_PK || 'pk_test_acs_demo_2026',
     webhookSecret: process.env.DEMO_MERCHANT_WEBHOOK_SECRET || 'whsec_acs_demo_2026',
     webhookUrl: process.env.DEMO_MERCHANT_WEBHOOK_URL || 'http://localhost:4000/webhooks/yombalpay',
