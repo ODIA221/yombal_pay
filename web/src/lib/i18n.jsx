@@ -37,6 +37,8 @@ const DICT = {
     preparing: 'Préparation…',
     sendDirect: "Vous avez un portefeuille Lightning ? Envoyez directement à l'adresse",
     amountLabel: 'Montant en FCFA',
+    savings: (xof, pct) => `Vous évitez ≈ ${xof} de frais par rapport à un transfert d'argent classique (${pct} % en moyenne).`,
+    saved: (xof) => `${xof} de frais évités par rapport à un transfert classique.`,
   },
   en: {
     payTo: 'Payment to',
@@ -73,6 +75,8 @@ const DICT = {
     preparing: 'Preparing…',
     sendDirect: 'Have a Lightning wallet? Send straight to the address',
     amountLabel: 'Amount in CFA francs',
+    savings: (xof, pct) => `You avoid ≈ ${xof} in fees compared to a typical money transfer (${pct}% on average).`,
+    saved: (xof) => `${xof} in fees avoided compared to a typical money transfer.`,
   },
 };
 

@@ -29,6 +29,7 @@ export default function PublicPay({ usernameOverride }) {
   }, [username]);
 
   const value = Number(amount || 0);
+  const saving = m?.savings ? Math.max(0, Math.round((value * (m.savings.benchmark_bps - m.savings.fee_bps)) / 10_000)) : 0;
 
   if (error && !m)
     return (
@@ -86,6 +87,7 @@ export default function PublicPay({ usernameOverride }) {
           <span className="amount-sats center-text">
             <Bolt size={14} /> {rate && value ? `${num(Math.ceil((value / rate.xof_per_btc) * 1e8))} sats` : t.amountHint}
           </span>
+          {saving > 0 && <p className="savings center-text">{t.savings(fcfa(saving), m.savings.benchmark_bps / 100)}</p>}
           <div className="pos-quick">
             {QUICK.map((q) => (
               <button type="button" key={q} onClick={() => setAmount(String(q))}>

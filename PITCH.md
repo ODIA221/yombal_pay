@@ -16,7 +16,7 @@ Ce que le jury regarde (curriculum Code & Chain) : **un vrai problème, une dém
 **4. Démo live (1:40 à 3:40)** : voir la chorégraphie ci-dessous.
 
 **5. Sous le capot (3:40 à 4:30)**
-« Ce n'est pas une maquette. Il y a des comptes marchands, et une base Supabase dont le RLS bloque l'API publique. On tient un vrai registre comptable : le solde est la somme d'écritures qu'on ne modifie jamais. Le statut "payé" ne vient jamais du navigateur : il faut un webhook Bitnob signé HMAC-SHA512, reconfirmé par l'API Bitnob. Chaque débit passe par un verrou : on a testé cinq retraits simultanés, sans aucune double dépense. Un retrait exige le mot de passe. Les clés API sont stockées hachées. 60 tests de bout en bout. »
+« Ce n'est pas une maquette. Il y a des comptes marchands, et une base Supabase dont le RLS bloque l'API publique. On tient un vrai registre comptable : le solde est la somme d'écritures qu'on ne modifie jamais. Le statut "payé" ne vient jamais du navigateur : il faut un webhook Bitnob signé HMAC-SHA512, reconfirmé par l'API Bitnob. Chaque débit passe par un verrou : on a testé cinq retraits simultanés, sans aucune double dépense. Un retrait exige le mot de passe. Les clés API sont stockées hachées. 64 tests de bout en bout, rejoués automatiquement sur GitHub à chaque modification. »
 
 **6. Suite (4:30 à 5:00)**
 « Déjà là : comptes caissiers, retrait automatique, plugin WooCommerce, pages client en anglais pour la diaspora. Prochaines étapes : KYC marchand, Shopify, wolof. Chaque boutique sénégalaise devient accessible à la diaspora et au monde entier. YombalPay : parce que se faire payer doit être yombal, simple pour tout le monde. »

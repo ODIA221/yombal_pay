@@ -1,5 +1,7 @@
 # YombalPay : encaissez du monde entier, recevez sur Wave
 
+[![Tests](https://github.com/ODIA221/yombal_pay/actions/workflows/tests.yml/badge.svg)](https://github.com/ODIA221/yombal_pay/actions/workflows/tests.yml)
+
 **La caisse Bitcoin des commerçants d'Afrique de l'Ouest.** Le commerçant affiche ses prix en FCFA. Son client paie en Bitcoin Lightning depuis n'importe quel pays. La valeur est protégée en USDT, puis retirée sur Wave, Orange Money ou Free Money. Le commerçant n'a jamais à toucher à la crypto.
 
 Construit sur l'API **Bitnob** (Lightning, Trading, Payouts) pour Code & Chain Dakar 2026.
@@ -30,12 +32,13 @@ Client (n'importe où) ── Lightning ──▶ YombalPay ──▶ Solde FCFA
 | **Liens de paiement** WhatsApp à montant fixe | Graphique des ventes, export CSV, preuve de paiement | Journal des notifications, renvoi manuel |
 | **« Payer pour un proche »** (diaspora), pages client **FR / EN** | **Retrait automatique** dès qu'un seuil est atteint | **Plugin WooCommerce** (`integrations/woocommerce`) |
 | **Comptes caissiers** : caisse et ventes uniquement | Journal d'activité du compte | |
+| **Frais évités** affichés au client avant et après paiement | **Compteur d'impact** : total des frais évités par vos clients | |
 
 ## Démarrage
 
 ```bash
 ./run.sh           # installe tout, crée la base, construit le front, lance passerelle :3000 + boutique :4000
-./run.sh test      # 60 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
+./run.sh test      # 64 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
 ./run.sh dev       # API rechargée à chaque modification + Vite :5173 + boutique
 ./run.sh check     # diagnostic de la connexion Bitnob
 ```

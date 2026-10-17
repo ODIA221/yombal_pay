@@ -452,6 +452,10 @@ td a { text-decoration: none; color: var(--text); }
 .amount-sats { display: inline-flex; gap: 6px; align-items: center; justify-content: center; color: var(--btc); font: 600 14px var(--mono); }
 .amount .amount-sats { justify-content: flex-start; }
 .desc { color: var(--muted); margin: 6px 0 20px; font-size: 14px; }
+.savings { margin: -10px 0 18px; padding: 8px 12px; border-radius: 10px; background: var(--green-soft); color: var(--green); font-size: 13px; font-weight: 600; }
+.success .savings, .center-text.savings { margin: 10px 0 14px; }
+.savings-banner { display: flex; gap: 10px; align-items: center; margin: 0 0 16px; padding: 12px 16px; border-radius: var(--radius); background: var(--green-soft); color: var(--green); font-size: 14px; }
+.savings-banner svg { flex: none; }
 .qr-wrap { display: block; background: #fff; border-radius: 18px; padding: 14px; width: fit-content; margin: 0 auto; }
 .qr { display: block; width: 248px; height: 248px; image-rendering: pixelated; }
 .status-row { display: flex; align-items: center; gap: 8px; justify-content: center; margin: 16px 0; color: var(--muted); font-size: 14px; text-align: center; flex-wrap: wrap; }
