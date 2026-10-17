@@ -39,7 +39,7 @@ Client (n'importe où) ── Lightning ou USDT ──▶ YombalPay ──▶ So
 
 ```bash
 ./run.sh           # installe tout, crée la base, construit le front, lance passerelle :3000 + boutique :4000
-./run.sh test      # 77 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
+./run.sh test      # 78 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
 ./run.sh dev       # API rechargée à chaque modification + Vite :5173 + boutique
 ./run.sh check     # diagnostic de la connexion Bitnob
 ```

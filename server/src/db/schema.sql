@@ -239,3 +239,6 @@ CREATE TABLE IF NOT EXISTS deposits (
 CREATE INDEX IF NOT EXISTS deposits_checkout_idx ON deposits(checkout_id);
 ALTER TABLE checkout_addresses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deposits ENABLE ROW LEVEL SECURITY;
+-- Chaque dépôt est crédité dès son arrivée (une seule fois), même partiel ou après paiement
+ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS deposit_id text REFERENCES deposits(transaction_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ledger_once_deposit ON ledger_entries(type, deposit_id) WHERE deposit_id IS NOT NULL;
