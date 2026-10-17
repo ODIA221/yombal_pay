@@ -80,7 +80,7 @@ export default function Home() {
           ['globe', 'Le client paie', "Votre client paie en Lightning depuis le pays de son choix. Ça prend deux secondes et presque rien en frais."],
           ['wallet', 'Le solde est crédité', "Bitnob confirme le paiement, on le revérifie de notre côté, puis la caisse sonne."],
           ['shield', 'La valeur est protégée', "La part que vous choisissez passe en USDT, une monnaie stable calée sur le dollar."],
-          ['out', 'Retrait mobile money', 'Quand vous voulez, vous retirez sur Wave, Orange Money ou Free Money.'],
+          ['out', 'Retrait mobile money', 'Quand vous voulez, vous retirez sur Wave, Orange Money, Free Money ou Expresso.'],
         ].map(([icon, title, text], i) => (
           <div key={title} className="flow-step">
             <span className="flow-icon">

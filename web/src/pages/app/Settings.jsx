@@ -85,6 +85,7 @@ export default function Settings() {
               ['wave', 'Wave'],
               ['orange_money', 'Orange Money'],
               ['free_money', 'Free Money'],
+              ['expresso', 'Expresso'],
             ].map(([v, l]) => (
               <button type="button" key={v} className={payout.network === v ? 'active' : ''} onClick={() => setPayout({ ...payout, network: v })}>
                 {l}

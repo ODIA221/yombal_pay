@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/ODIA221/yombal_pay/actions/workflows/tests.yml/badge.svg)](https://github.com/ODIA221/yombal_pay/actions/workflows/tests.yml)
 
-**La caisse Bitcoin des commerçants d'Afrique de l'Ouest.** Le commerçant affiche ses prix en FCFA. Son client paie en Bitcoin Lightning depuis n'importe quel pays. La valeur est protégée en USDT, puis retirée sur Wave, Orange Money ou Free Money. Le commerçant n'a jamais à toucher à la crypto.
+**La caisse Bitcoin des commerçants d'Afrique de l'Ouest.** Le commerçant affiche ses prix en FCFA. Son client paie en Bitcoin Lightning depuis n'importe quel pays. La valeur est protégée en USDT, puis retirée sur Wave, Orange Money, Free Money ou Expresso. Le commerçant n'a jamais à toucher à la crypto.
 
 Construit sur l'API **Bitnob** (Lightning, Trading, Payouts) pour Code & Chain Dakar 2026.
 
@@ -28,7 +28,7 @@ Client (n'importe où) ── Lightning ou USDT ──▶ YombalPay ──▶ So
 |---|---|---|
 | **Caisse mobile** : pavé numérique en FCFA, QR, son à l'encaissement, application installable | **Solde en FCFA** : BTC et USDT, registre comptable | **API REST + SDK Node + bouton** en une balise |
 | **Adresse Lightning** `boutique@domaine` (LNURL-pay, LUD-16/12/21) | **Conversion USDT** manuelle ou automatique (% de chaque paiement) | **Webhooks signés** HMAC-SHA256 avec retries |
-| **Page publique** `/@boutique` à montant libre, **affiche QR** à imprimer | **Retraits** Wave / Orange Money / Free Money | **Clés révocables**, stockées hachées |
+| **Page publique** `/@boutique` à montant libre, **affiche QR** à imprimer | **Retraits** Wave / Orange Money / Free Money / Expresso | **Clés révocables**, stockées hachées |
 | **Liens de paiement** WhatsApp à montant fixe | Graphique des ventes, export CSV, preuve de paiement | Journal des notifications, renvoi manuel |
 | **« Payer pour un proche »** (diaspora), pages client **FR / EN** | **Retrait automatique** dès qu'un seuil est atteint | **Plugin WooCommerce** (`integrations/woocommerce`) |
 | **Comptes caissiers** : caisse et ventes uniquement | Journal d'activité du compte | |
@@ -40,7 +40,7 @@ Client (n'importe où) ── Lightning ou USDT ──▶ YombalPay ──▶ So
 
 ```bash
 ./run.sh           # installe tout, crée la base, construit le front, lance passerelle :3000 + boutique :4000
-./run.sh test      # 90 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
+./run.sh test      # 91 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
 ./run.sh dev       # API rechargée à chaque modification + Vite :5173 + boutique
 ./run.sh check     # diagnostic de la connexion Bitnob
 ```

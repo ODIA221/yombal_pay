@@ -6,7 +6,8 @@ import { dateTime, fcfa, num, snPhone, usdt } from '../../lib/format.js';
 import { useLive } from '../../components/AppLayout.jsx';
 import { Bolt, Empty, Field, Icon, Modal, Pill, Spinner, useToast } from '../../components/ui.jsx';
 
-const NETWORK_STYLE = { wave: 'net-wave', orange_money: 'net-orange', free_money: 'net-free' };
+const NETWORK_STYLE = { wave: 'net-wave', orange_money: 'net-orange', free_money: 'net-free', expresso: 'net-expresso' };
+const NETWORK_LABEL = { wave: 'Wave', orange_money: 'Orange Money', free_money: 'Free Money', expresso: 'Expresso' };
 const LEDGER_LABEL = {
   payment: 'Paiement reçu',
   fee: 'Commission',
@@ -100,7 +101,7 @@ export default function Wallet() {
         </div>
         {tab === 'payouts' &&
           (payouts.data.length === 0 ? (
-            <Empty icon="out" title="Aucun retrait">Vos retraits vers Wave, Orange Money ou Free Money apparaîtront ici.</Empty>
+            <Empty icon="out" title="Aucun retrait">Vos retraits vers Wave, Orange Money, Free Money ou Expresso apparaîtront ici.</Empty>
           ) : (
             <ul className="tx-list padded">
               {payouts.data.map((p) => (
@@ -255,7 +256,7 @@ function AutoPayout({ merchant, onSaved }) {
         </h2>
         <p className="muted small">
           {account
-            ? <>Dès que le solde Bitcoin atteint <strong>{fcfa(min || 0)}</strong>, tout est envoyé sur {account.network === 'wave' ? 'Wave' : account.network === 'orange_money' ? 'Orange Money' : 'Free Money'} +221 {snPhone(account.phone)}.</>
+            ? <>Dès que le solde Bitcoin atteint <strong>{fcfa(min || 0)}</strong>, tout est envoyé sur {NETWORK_LABEL[account.network] || account.network} +221 {snPhone(account.phone)}.</>
             : <>Enregistrez d'abord un compte de retrait par défaut dans les Réglages.</>}
         </p>
       </div>

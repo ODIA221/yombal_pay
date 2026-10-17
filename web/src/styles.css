@@ -18,6 +18,7 @@
   --wave: #1dc4ff;
   --orange: #ff7900;
   --free: #e4002b;
+  --expresso: #0072bc;
   --radius: 16px;
   --display: 'Space Grotesk', system-ui, sans-serif;
   --body: 'Inter', system-ui, sans-serif;
@@ -332,6 +333,7 @@ td a { text-decoration: none; color: var(--text); }
 .net-wave .net-badge, .net-badge.net-wave { background: var(--wave); color: #04212e; }
 .net-orange .net-badge, .net-badge.net-orange { background: var(--orange); color: #1a0c00; }
 .net-free .net-badge, .net-badge.net-free { background: var(--free); }
+.net-expresso .net-badge, .net-badge.net-expresso { background: var(--expresso); }
 .confirm-box { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 20px; border-radius: 14px; background: var(--bg-2); text-align: center; }
 .confirm-box strong { font: 700 32px var(--display); }
 .convert-preview { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; padding: 16px; border-radius: 14px; background: var(--bg-2); margin: 14px 0; }

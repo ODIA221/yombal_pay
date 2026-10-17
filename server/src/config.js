@@ -47,7 +47,7 @@ export const config = {
     // 1 USD (≈ 1 USDT) en FCFA, utilisé si Bitnob ne cote pas directement BTC/XOF
     usdToXof: Number(process.env.USD_XOF) || 600,
     // Taux fixe de secours (1 BTC en FCFA), affiché comme tel sur la page de paiement
-    fixedXofPerBtc: Number(process.env.FIXED_XOF_PER_BTC) || 62_000_000,
+    fixedXofPerBtc: Number(process.env.FIXED_XOF_PER_BTC) || 48_500_000,
     cacheSeconds: Number(process.env.RATE_CACHE_SECONDS) || 60,
     // Interroger CoinGecko (BTC/EUR × 655,957) si Bitnob ne répond pas
     allowPublicFallback: process.env.RATE_PUBLIC_FALLBACK !== 'false',

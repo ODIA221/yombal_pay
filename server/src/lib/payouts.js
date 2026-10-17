@@ -1,4 +1,4 @@
-// Retraits vers mobile money (Wave, Orange Money, Free Money) via les payouts Bitnob : quote → initialize → finalize.
+// Retraits vers mobile money (Wave, Orange Money, Free Money, Expresso) via les payouts Bitnob : quote → initialize → finalize.
 // Le solde est débité dans la même transaction que la création du retrait (verrou par marchand),
 // et recrédité automatiquement si Bitnob signale un échec.
 import { config } from '../config.js';
@@ -14,6 +14,7 @@ export const NETWORKS = {
   wave: { label: 'Wave', bitnob: 'wave' },
   orange_money: { label: 'Orange Money', bitnob: 'orange' },
   free_money: { label: 'Free Money (Mixx by Yas)', bitnob: 'free' },
+  expresso: { label: 'Expresso', bitnob: 'expresso' },
 };
 
 const err = (message, status = 422) => Object.assign(new Error(message), { status });
@@ -52,7 +53,7 @@ export async function createPayout(merchant, { amount, network, phone, accountNa
   const amountXof = Math.round(Number(amount));
   if (!Number.isFinite(amountXof) || amountXof < config.payouts.minXof) throw err(`Montant minimum de retrait : ${config.payouts.minXof} FCFA.`);
   if (amountXof > config.payouts.maxXof) throw err(`Montant maximum par retrait : ${config.payouts.maxXof.toLocaleString('fr-FR')} FCFA.`);
-  if (!NETWORKS[network]) throw err('Choisissez Wave, Orange Money ou Free Money.');
+  if (!NETWORKS[network]) throw err('Choisissez Wave, Orange Money, Free Money ou Expresso.');
   const local = normalizeSnPhone(phone);
   if (!local) throw err('Numéro sénégalais invalide (ex. 77 123 45 67).');
   const name = String(accountName || '').trim().slice(0, 80);

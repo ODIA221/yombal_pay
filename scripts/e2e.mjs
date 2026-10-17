@@ -205,6 +205,8 @@ try {
   check((await po({ password: 'mauvais' })).status === 401, 'Retrait refusé avec un mauvais mot de passe');
   check((await po({ amount: 9_000_000 })).status === 422, 'Retrait supérieur au solde refusé');
   check((await po({ amount: 2000, phone: '12345' })).status === 422, 'Numéro mobile money invalide refusé');
+  const exp = await json(await me('/v1/merchant', { method: 'PATCH', body: { payout: { network: 'expresso', phone: '70 123 45 67', name: 'Fatou Diop' }, password: 'dakar2026' } }));
+  check(exp.payout?.network === 'expresso', 'Compte de retrait Expresso accepté (4e opérateur du corridor Bitnob SN)');
 
   const before = ov.balance.btc.sats;
   const payout = await json(await po({ amount: 2000 }));
