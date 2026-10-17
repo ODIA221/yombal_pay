@@ -1,0 +1,20 @@
+{
+  "name": "yombalpay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "YombalPay — le PayDunya du Bitcoin : passerelle Lightning en FCFA propulsée par Bitnob (Code & Chain Dakar 2026)",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "setup": "npm install --prefix server && npm install --prefix web && npm install --prefix shop",
+    "build": "npm run build --prefix web",
+    "start": "node server/src/index.js",
+    "shop": "node shop/server.js",
+    "demo": "node scripts/demo.mjs",
+    "dev:api": "node --watch server/src/index.js",
+    "dev:web": "npm run dev --prefix web",
+    "test": "node scripts/e2e.mjs",
+    "bitnob:check": "node scripts/bitnob-check.mjs"
+  },
+  "license": "MIT"
+}
