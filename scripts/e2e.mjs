@@ -1,8 +1,9 @@
 // Tests de bout en bout (mode démo, base PostgreSQL de test dédiée) :
 // boutique → paiement → webhook Bitnob signé → registre → notification marchand → conversion → retrait,
 // plus les garde-fous de sécurité (sessions, CSRF, clés, URL, double dépense).
-import { spawn, execSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import crypto from 'node:crypto';
+import { ensureDatabase } from './ensure-db.mjs';
 
 const API = 'http://localhost:3100';
 const SHOP = 'http://localhost:4100';
@@ -10,11 +11,10 @@ const BITNOB_WEBHOOK_SECRET = 'test_bitnob_webhook_secret';
 const DB = process.env.TEST_DATABASE_URL || 'postgres://localhost:5432/yombal_pay_test';
 
 // Base de test vierge à chaque exécution
-const dbName = new URL(DB).pathname.slice(1);
 try {
-  execSync(`dropdb --if-exists ${dbName} && createdb ${dbName}`, { stdio: 'ignore', shell: true });
-} catch {
-  console.error(`❌ Impossible de (re)créer la base de test « ${dbName} » (Postgres lancé ? createdb dans le PATH ?)`);
+  await ensureDatabase(DB, { reset: true });
+} catch (err) {
+  console.error(`❌ Impossible de (re)créer la base de test (${err.message}). Postgres est-il lancé ? Sinon, renseignez TEST_DATABASE_URL.`);
   process.exit(1);
 }
 

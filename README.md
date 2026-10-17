@@ -40,6 +40,8 @@ Client (n'importe où) ──⚡ Lightning──▶ YombalPay ──▶ Solde FC
 ./run.sh check     # diagnostic de la connexion Bitnob
 ```
 
+**Sous Windows**, utilisez `run.bat` avec les mêmes commandes (`run.bat`, `run.bat test`, `run.bat dev`, `run.bat check`) dans l'invite de commandes ou PowerShell (`.\run.bat`). Le plus simple est d'utiliser Supabase (`DATABASE_URL`). Avec un PostgreSQL local, indiquez l'utilisateur et le mot de passe : `DATABASE_URL=postgres://postgres:<mot-de-passe>@localhost:5432/yombal_pay`, et pour les tests `TEST_DATABASE_URL=postgres://postgres:<mot-de-passe>@localhost:5432/yombal_pay_test`.
+
 - Site et espace marchand : http://localhost:3000. Compte de démo : identifiants `DEMO_MERCHANT_EMAIL` / `DEMO_MERCHANT_PASSWORD` de votre `.env`.
 - Boutique de démo : http://localhost:4000
 - Sans clés Bitnob, tout fonctionne en **mode démo** (factures simulées, bouton « Simuler le paiement »).
