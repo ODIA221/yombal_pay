@@ -122,6 +122,10 @@ const server = app.listen(config.port, () => {
   console.log(`\n⚡ YombalPay sur ${config.publicUrl}  (port ${config.port})`);
   console.log(`   Mode : ${config.demoMode ? 'DÉMO (factures simulées)' : 'RÉEL, Bitnob ' + config.bitnob.baseUrl}  ·  retraits : ${config.payouts.mode}`);
   console.log(`   Webhook Bitnob à déclarer : ${config.publicUrl}/webhooks/bitnob`);
+  if (config.bitnob.keyEnv !== 'none')
+    console.log(`   Clé Bitnob : ${config.bitnob.keyEnv === 'production' ? 'PRODUCTION (prd:), argent réel' : 'sandbox (tests)'}  ·  ${config.bitnob.baseUrl}`);
+  if (!config.demoMode && config.bitnob.keyEnv === 'production')
+    console.warn('⚠️  Clé de PRODUCTION : paiements et retraits réels. Pour les tests, utilisez le secret sandbox (même ID client).');
   if (demo) console.log(`   Compte démo : ${demo.email}${demo.password ? ` / mot de passe généré : ${demo.password}` : ' (mot de passe du .env)'}  ·  clé API ${demo.apiKey}`);
   if (!config.demoMode && !config.bitnob.webhookSecret)
     console.warn(
