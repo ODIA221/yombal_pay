@@ -70,7 +70,7 @@ try {
   const c = await json(await fetch(`${API}/v1/checkouts/${id}`, { headers: K }));
   check(c.status === 'pending' && c.amount === 12500 && c.amount_sats > 0 && c.payment_request, `Paiement ${c.amount} FCFA = ${c.amount_sats} sats, facture Lightning prête`);
 
-  check(Math.abs(c.savings?.xof - 875) <= 1 && c.savings.benchmark_pct === 8, `Frais évités affichés au client : ${c.savings?.xof} FCFA (8 % moins la commission 1 %)`);
+  check(Math.abs(c.savings?.xof - 500) <= 1 && c.savings.benchmark_pct === 5, `Frais évités affichés au client : ${c.savings?.xof} FCFA (5 % moins la commission 1 %)`);
 
   const ov0 = await json(await fetch(`${API}/v1/overview`, { headers: K }));
   const body = JSON.stringify({ id: 'evt_1', event: 'transfer.success', data: { reference: `yp_${id}`, status: 'paid' } });

@@ -13,7 +13,7 @@ Construit sur l'API **Bitnob** (Lightning, Trading, Payouts) pour Code & Chain D
 
 ## Le problème
 
-- **Aïssatou tient African Costume Shop à Dakar : grands boubous, bazin et kaftans cousus main.** Sa meilleure cliente, Fatou, vit à Paris. Fatou n'a pas Wave sénégalais, sa carte coûte 4 % de frais, et les passerelles Bitcoin étrangères ne versent pas un franc CFA. La vente ne se fait pas.
+- **Aïssatou tient African Costume Shop à Dakar : grands boubous, bazin et kaftans cousus main.** Sa meilleure cliente, Fatou, vit à Paris. Fatou n'a pas de compte Wave sénégalais, la petite boutique n'accepte pas sa carte, et les passerelles Bitcoin étrangères ne versent pas un franc CFA. La vente ne se fait pas.
 - **Les commerçants ont peur de la volatilité** et ne savent pas transformer des sats en argent utilisable.
 - **Intégrer Bitnob en direct** demande de gérer la signature HMAC, la conversion FCFA, les webhooks, les doublons, la comptabilité et les retraits. Il faut des jours de travail.
 
