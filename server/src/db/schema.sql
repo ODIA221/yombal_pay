@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS merchants (
   publishable_key  text NOT NULL UNIQUE,              -- pk_… : publique par nature
   fee_bps          integer NOT NULL DEFAULT 100,      -- commission YombalPay (100 = 1 %)
   auto_convert_pct integer NOT NULL DEFAULT 0 CHECK (auto_convert_pct BETWEEN 0 AND 100),
-  payout_network   text,                              -- wave | orange_money | free_money
+  payout_network   text,                              -- wave | orange_money | free_money | expresso
   payout_phone     text,
   payout_name      text,
   is_demo          boolean NOT NULL DEFAULT false,
