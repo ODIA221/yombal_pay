@@ -6,7 +6,7 @@ export const sats = (n) => `${num(n)} sats`;
 export const usdt = (n) => `${Number(n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`;
 
 export function timeAgo(iso) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   const s = Math.round((Date.now() - Date.parse(iso)) / 1000);
   if (s < 60) return `il y a ${Math.max(s, 1)} s`;
   if (s < 3600) return `il y a ${Math.round(s / 60)} min`;
@@ -16,7 +16,7 @@ export function timeAgo(iso) {
 }
 
 export const dateTime = (iso) =>
-  iso ? new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+  iso ? new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-';
 
 export const dayLabel = (yyyyMmDd) => {
   const d = new Date(`${yyyyMmDd}T12:00:00Z`);

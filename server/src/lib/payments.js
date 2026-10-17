@@ -61,7 +61,7 @@ export async function findByInvoice({ invoiceId, paymentHash, bitnobReference })
 }
 
 function fakeBolt11(sats) {
-  // Facture factice lisible (mode démo uniquement — non payable par un vrai portefeuille)
+  // Facture factice lisible (mode démo uniquement, non payable par un vrai portefeuille)
   return `lnbc${sats}0n1pdemo${crypto.randomBytes(40).toString('hex')}`;
 }
 
@@ -100,7 +100,7 @@ export async function createCheckout(merchant, input) {
 
   const id = newId('chk');
   const bitnobReference = `yp_${id}`;
-  const description = String(input.description || `${merchant.name} — commande ${reference}`).slice(0, 140);
+  const description = String(input.description || `${merchant.name}, commande ${reference}`).slice(0, 140);
   const fallbackExpiry = new Date(Date.now() + config.invoiceExpirySeconds * 1000);
 
   let invoice;

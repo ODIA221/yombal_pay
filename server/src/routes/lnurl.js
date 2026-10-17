@@ -49,7 +49,7 @@ lnurlRouter.get(
     try {
       const { checkout } = await createCheckout(m, {
         amount_sats: sats,
-        description: comment ? `${m.name} — ${comment}` : `Paiement à ${m.name}`,
+        description: comment ? `${m.name} : ${comment}` : `Paiement à ${m.name}`,
         payer_note: comment || null,
         source: 'lightning_address',
       });
@@ -61,7 +61,8 @@ lnurlRouter.get(
         disposable: false,
       });
     } catch (e) {
-      lnError(res, `Facture indisponible : ${e.message}`);
+      console.error('Adresse Lightning, facture impossible :', e.message);
+      lnError(res, 'Facture momentanément indisponible, réessayez dans quelques instants.');
     }
   }),
 );

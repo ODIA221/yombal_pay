@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# YombalPay — lance tout le projet en une commande.
+# YombalPay : lance tout le projet en une commande.
 #
 #   ./run.sh          installe, construit le front, lance la passerelle (:3000) + la boutique (:4000)
 #   ./run.sh dev      mode développement : API en --watch (:3000) + Vite (:5173) + boutique (:4000)
@@ -84,7 +84,7 @@ build_web() {
 
 banner() {
   echo
-  ok "YombalPay est lancé — Ctrl+C pour tout arrêter"
+  ok "YombalPay est lancé. Ctrl+C pour tout arrêter."
   echo "   🛍  Boutique de démo  : http://localhost:4000"
   echo "   💼 Espace marchand   : http://localhost:3000/app   (compte démo : $(grep -E '^DEMO_MERCHANT_EMAIL=' .env | cut -d= -f2-))"
   echo "   🧾 Caisse            : http://localhost:3000/app/caisse"

@@ -201,10 +201,15 @@ try {
   const rel = await json(
     await fetch(`${API}/v1/public/merchants/fatou/checkouts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 20000, payer_name: 'Awa', for_name: 'Maman', note: 'Ordonnance' }) }),
   );
-  check(rel.description === 'Pour Maman — Ordonnance', `Diaspora : paiement « ${rel.description} »`);
+  check(rel.description === 'Pour Maman, Ordonnance', `Diaspora : paiement « ${rel.description} »`);
 
   // ── Retrait automatique ───────────────────────────────────────────────────
-  await me('/v1/merchant', { method: 'PATCH', body: { payout: { network: 'orange_money', phone: '78 123 45 67', name: 'Fatou Diop' } } });
+  const payoutAccount = { network: 'orange_money', phone: '78 123 45 67', name: 'Fatou Diop' };
+  check(
+    (await me('/v1/merchant', { method: 'PATCH', body: { payout: payoutAccount } })).status === 401,
+    'Changer le compte de retrait sans mot de passe est refusé',
+  );
+  await me('/v1/merchant', { method: 'PATCH', body: { payout: payoutAccount, password: 'dakar2026' } });
   check(
     (await me('/v1/merchant', { method: 'PATCH', body: { auto_payout: { enabled: true, min_xof: 5000 }, password: 'faux' } })).status === 401,
     'Activation du retrait automatique refusée sans le bon mot de passe',

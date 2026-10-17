@@ -16,7 +16,7 @@ function AuthShell({ title, subtitle, children }) {
         {children}
       </div>
       <p className="auth-foot">
-        <Icon name="lock" size={14} /> Connexion chiffrée · mots de passe hachés (scrypt) · sessions HttpOnly
+        <Icon name="lock" size={14} /> Connexion chiffrée. Votre mot de passe n'est jamais stocké en clair.
       </p>
     </div>
   );
@@ -111,13 +111,13 @@ export function Signup() {
 
   if (secretKey)
     return (
-      <AuthShell title="Bienvenue sur YombalPay 🎉" subtitle="Votre compte est prêt. Vous pouvez encaisser dès maintenant.">
+      <AuthShell title="Bienvenue sur YombalPay" subtitle="Votre compte est prêt. Vous pouvez encaisser dès maintenant.">
         <div className="stack">
           <div className="callout ok">
             <Icon name="check" /> Votre adresse Lightning : <strong className="mono">{merchant?.lightning_address}</strong>
           </div>
           <div className="callout warn">
-            <strong>Votre clé secrète API — affichée une seule fois.</strong>
+            <strong>Votre clé secrète API. Elle ne s'affichera qu'une fois, notez-la maintenant.</strong>
             <span className="small">Pour intégrer YombalPay à un site. Gardez-la côté serveur ; vous pourrez en créer d'autres.</span>
             <code className="secret">{secretKey}</code>
             <CopyButton text={secretKey} className="btn ghost sm" />

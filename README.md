@@ -1,4 +1,4 @@
-# ⚡ YombalPay — encaissez du monde entier, recevez sur Wave
+# YombalPay : encaissez du monde entier, recevez sur Wave
 
 **La caisse Bitcoin des commerçants d'Afrique de l'Ouest.** Le commerçant affiche ses prix en FCFA. Son client paie en Bitcoin Lightning depuis n'importe quel pays. La valeur est protégée en USDT, puis retirée sur Wave, Orange Money ou Free Money. Le commerçant n'a jamais à toucher à la crypto.
 
@@ -18,7 +18,7 @@ Construit sur l'API **Bitnob** (Lightning, Trading, Payouts) pour Code & Chain D
 ## La solution : la boucle complète
 
 ```
-Client (n'importe où) ──⚡ Lightning──▶ YombalPay ──▶ Solde FCFA ──▶ USDT (anti-volatilité) ──▶ Wave / Orange Money
+Client (n'importe où) ── Lightning ──▶ YombalPay ──▶ Solde FCFA ──▶ USDT (anti-volatilité) ──▶ Wave / Orange Money
                                        Bitnob Lightning          Bitnob Trading            Bitnob Payouts
 ```
 
@@ -112,7 +112,10 @@ Sans `DATABASE_URL`, `run.sh` utilise un PostgreSQL local, utile si le réseau t
 
 ## Feuille de route
 
-KYC marchand et plafonds par niveau · plugin Shopify · paiement on-chain (`deposit.success`) · interface en wolof (traduction à valider par des locuteurs natifs).
+- KYC marchand et plafonds par niveau.
+- Plugin Shopify.
+- Paiement on-chain (`deposit.success`).
+- Interface en wolof, à faire relire par des locuteurs natifs.
 
 ## Crédits photos
 

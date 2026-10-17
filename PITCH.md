@@ -4,21 +4,21 @@ Ce que le jury regarde (curriculum Code & Chain) : **un vrai problème, une dém
 
 ## Pitch de 5 minutes, en 6 temps
 
-**1. Accroche (0:00 – 0:20)**
+**1. Accroche (0:00 à 0:20)**
 « Levez la main si vous avez déjà envoyé de l'argent à quelqu'un au Sénégal depuis l'étranger. Combien avez-vous payé de frais ? »
 
-**2. Problème (0:20 – 1:00)**
+**2. Problème (0:20 à 1:00)**
 « Aïssatou tient African Costume Shop à Dakar : grands boubous, bazin et kaftans cousus main. Sa meilleure cliente, Fatou, vit à Paris. Fatou n'a pas Wave sénégalais, sa carte coûte 4 % et les passerelles Bitcoin étrangères ne versent pas un franc CFA. Et même si Aïssatou recevait du Bitcoin, elle aurait peur de la volatilité et ne saurait pas le transformer en argent pour payer son fournisseur. Résultat : la vente ne se fait pas. »
 
-**3. Solution (1:00 – 1:40)**
+**3. Solution (1:00 à 1:40)**
 « YombalPay, c'est la caisse Bitcoin des commerçants d'Afrique de l'Ouest. On ferme la boucle complète : le client paie en Lightning depuis n'importe où, le solde s'affiche en FCFA, la valeur est protégée en USDT, et Aïssatou retire sur Wave. Elle n'a jamais besoin de comprendre ce qu'est le Bitcoin. Trois produits Bitnob dans une seule application : Lightning, Trading, Payouts. »
 
-**4. Démo live (1:40 – 3:40)** : voir la chorégraphie ci-dessous.
+**4. Démo live (1:40 à 3:40)** : voir la chorégraphie ci-dessous.
 
-**5. Sous le capot (3:40 – 4:30)**
+**5. Sous le capot (3:40 à 4:30)**
 « Ce n'est pas une maquette. Il y a des comptes marchands, et une base Supabase dont le RLS bloque l'API publique. On tient un vrai registre comptable : le solde est la somme d'écritures qu'on ne modifie jamais. Le statut "payé" ne vient jamais du navigateur : il faut un webhook Bitnob signé HMAC-SHA512, reconfirmé par l'API Bitnob. Chaque débit passe par un verrou : on a testé cinq retraits simultanés, sans aucune double dépense. Un retrait exige le mot de passe. Les clés API sont stockées hachées. 60 tests de bout en bout. »
 
-**6. Suite (4:30 – 5:00)**
+**6. Suite (4:30 à 5:00)**
 « Déjà là : comptes caissiers, retrait automatique, plugin WooCommerce, pages client en anglais pour la diaspora. Prochaines étapes : KYC marchand, Shopify, wolof. Chaque boutique sénégalaise devient accessible à la diaspora et au monde entier. YombalPay : parce que se faire payer doit être yombal, simple pour tout le monde. »
 
 ## Chorégraphie de la démo (2 min)

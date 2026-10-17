@@ -72,7 +72,7 @@ async function request(method, path, body) {
 export const bitnob = {
   whoami: () => request('GET', '/api/whoami'),
 
-  // POST /api/lightning/invoices — montant en sats, reference = clé d'idempotence
+  // POST /api/lightning/invoices : montant en sats, reference = clé d'idempotence
   createInvoice: ({ amountSats, description, reference, expirySeconds, customerId }) =>
     request('POST', '/api/lightning/invoices', {
       amount: amountSats,
@@ -82,7 +82,7 @@ export const bitnob = {
       ...(customerId ? { customer_id: customerId } : {}),
     }),
 
-  // GET /api/lightning/invoices/:id — status "paid" + preimage = preuve de paiement
+  // GET /api/lightning/invoices/:id : status "paid" + preimage = preuve de paiement
   getInvoice: (id) => request('GET', `/api/lightning/invoices/${encodeURIComponent(id)}`),
 
   // GET /api/exchange-rates?from=BTC&to=XOF
@@ -98,7 +98,7 @@ export const bitnob = {
       ...(phone ? { phone } : {}),
     }),
 
-  // POST /api/trading/quotes — cotation BTC → USDT (protection contre la volatilité)
+  // POST /api/trading/quotes : cotation BTC → USDT (protection contre la volatilité)
   createQuote: ({ quantityBtc, side = 'sell' }) =>
     request('POST', '/api/trading/quotes', {
       base_currency: 'BTC',
@@ -107,7 +107,7 @@ export const bitnob = {
       quantity: quantityBtc,
     }),
 
-  // POST /api/trading/orders — exécute la conversion au prix coté (quote_id)
+  // POST /api/trading/orders : exécute la conversion au prix coté (quote_id)
   createOrder: ({ quantityBtc, price, quoteId, reference, side = 'sell' }) =>
     request('POST', '/api/trading/orders', {
       base_currency: 'BTC',

@@ -1,4 +1,4 @@
-// SDK Node.js YombalPay — accepter Bitcoin Lightning en FCFA en quelques lignes.
+// SDK Node.js YombalPay : accepter Bitcoin Lightning en FCFA en quelques lignes.
 //
 //   import YombalPay from 'yombalpay';
 //   const tp = new YombalPay({ apiKey: process.env.YOMBALPAY_SECRET_KEY });

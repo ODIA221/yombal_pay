@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { config } from './config.js';
 import { one, tx } from './db/pool.js';
 import { createApiKey, createMerchant } from './lib/merchants.js';
-import { hashPassword, randomToken, verifyPassword } from './lib/security.js';
+import { hashPassword, randomToken, sha256, verifyPassword } from './lib/security.js';
 import { creditPayment } from './lib/ledger.js';
 import { newId } from './lib/ids.js';
 import { getXofPerBtc, xofToSats } from './lib/rates.js';
@@ -13,6 +13,26 @@ const HISTORY = [
   [4, 22000, 'Kaftan imprimé femme'], [3, 45000, 'Boubou bazin riche bleu nuit'], [2, 12500, 'Chemise dashiki'], [2, 32000, 'Boubou teint à la main'],
   [1, 35000, 'Ensemble kaftan blanc de cérémonie'], [1, 9500, 'Étole kente tissée main'], [0, 22000, 'Kaftan imprimé femme'],
 ];
+
+// Ventes de démo créées du temps de « Wax & Co » : renommées avec les produits actuels (rien n'est supprimé,
+// le registre reste cohérent). Ne touche que les paiements fictifs (demo = true) du compte de démo.
+const WAX_TO_ACS = [
+  ['Sac cabas en wax', 'Étole kente tissée main'],
+  ['Foulard bazin brodé', 'Chemise dashiki'],
+  ['Chemise wax homme', 'Kaftan imprimé femme'],
+  ['Panier tressé de Thiès', 'Étole kente tissée main'],
+  ['Robe wax sur mesure', 'Robe bazin brodée émeraude'],
+];
+async function renameWaxHistory(merchantId) {
+  await tx(async (client) => {
+    for (const [from, to] of WAX_TO_ACS)
+      await client.query(`UPDATE checkouts SET description = $3 WHERE merchant_id = $1 AND demo AND description IN ($2, 'Wax & Co — ' || $2)`, [merchantId, from, to]);
+    await client.query(`UPDATE checkouts SET reference = 'ACS-' || substr(reference, 5) WHERE merchant_id = $1 AND demo AND reference LIKE 'WAX-%'`, [merchantId]);
+    // Ancien format de la boutique : « African Costume Shop — Produit (taille) »
+    await client.query(`UPDATE checkouts SET description = substr(description, 24) WHERE merchant_id = $1 AND demo AND description LIKE 'African Costume Shop — %'`, [merchantId]);
+    await client.query(`UPDATE ledger_entries SET description = 'Paiement ACS-' || substr(description, 14) WHERE merchant_id = $1 AND description LIKE 'Paiement WAX-%'`, [merchantId]);
+  });
+}
 
 export async function seedDemo() {
   const d = { ...config.demoMerchant };
@@ -47,6 +67,12 @@ export async function seedDemo() {
     });
   }
   await createApiKey(m.id, 'Boutique de démo', { rawKey: d.apiKey });
+  // Seule la clé de démo actuelle reste active (l'ancienne clé « waxco » est révoquée)
+  await one(
+    `UPDATE api_keys SET revoked_at = now() WHERE merchant_id = $1 AND label = 'Boutique de démo' AND key_hash <> $2 AND revoked_at IS NULL RETURNING 1`,
+    [m.id, sha256(d.apiKey)],
+  );
+  await renameWaxHistory(m.id);
 
   // Historique de ventes (mode démo uniquement : jamais de fausses données en réel)
   if (config.demoMode && !(await one('SELECT 1 FROM checkouts WHERE merchant_id = $1 LIMIT 1', [m.id]))) {

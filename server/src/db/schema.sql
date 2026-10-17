@@ -1,4 +1,4 @@
--- YombalPay — schéma PostgreSQL (idempotent : exécuté à chaque démarrage)
+-- YombalPay : schéma PostgreSQL (idempotent : exécuté à chaque démarrage)
 
 CREATE TABLE IF NOT EXISTS merchants (
   id               text PRIMARY KEY,
@@ -203,3 +203,11 @@ ALTER TABLE checkouts ADD COLUMN IF NOT EXISTS staff_id text REFERENCES staff(id
 ALTER TABLE merchants ADD COLUMN IF NOT EXISTS auto_payout_enabled boolean NOT NULL DEFAULT false;
 ALTER TABLE merchants ADD COLUMN IF NOT EXISTS auto_payout_min_xof bigint NOT NULL DEFAULT 10000;
 ALTER TABLE payouts ADD COLUMN IF NOT EXISTS trigger text NOT NULL DEFAULT 'manual';
+
+-- ── v3 : argent de démo séparé de l'argent réel ─────────────────────────────
+-- Les écritures nées en mode démo (paiements simulés, conversions et retraits simulés) sont marquées :
+-- en mode réel, elles ne comptent pas dans le solde, donc impossible de retirer de vrais FCFA avec.
+ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS demo boolean NOT NULL DEFAULT false;
+UPDATE ledger_entries l SET demo = true FROM checkouts c WHERE l.checkout_id = c.id AND c.demo AND NOT l.demo;
+UPDATE ledger_entries l SET demo = true FROM conversions v WHERE l.conversion_id = v.id AND v.provider = 'simulated' AND NOT l.demo;
+UPDATE ledger_entries l SET demo = true FROM payouts p WHERE l.payout_id = p.id AND p.provider = 'simulated' AND NOT l.demo;

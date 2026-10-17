@@ -47,7 +47,7 @@ app.use(
   }),
 );
 
-// API publique appelable depuis les sites marchands (clé pk_…) — jamais avec cookies
+// API publique appelable depuis les sites marchands (clé pk_…), jamais avec cookies
 app.use('/v1', cors({ origin: true, credentials: false }));
 
 // Webhooks Bitnob : corps brut requis pour vérifier la signature → monté avant tout parseur JSON
@@ -118,7 +118,7 @@ const demo = config.seedDemo ? await seedDemo() : null;
 
 const server = app.listen(config.port, () => {
   console.log(`\n⚡ YombalPay sur ${config.publicUrl}  (port ${config.port})`);
-  console.log(`   Mode : ${config.demoMode ? 'DÉMO (factures simulées)' : 'RÉEL — Bitnob ' + config.bitnob.baseUrl}  ·  retraits : ${config.payouts.mode}`);
+  console.log(`   Mode : ${config.demoMode ? 'DÉMO (factures simulées)' : 'RÉEL, Bitnob ' + config.bitnob.baseUrl}  ·  retraits : ${config.payouts.mode}`);
   console.log(`   Webhook Bitnob à déclarer : ${config.publicUrl}/webhooks/bitnob`);
   if (demo) console.log(`   Compte démo : ${demo.email}${demo.password ? ` / mot de passe généré : ${demo.password}` : ' (mot de passe du .env)'}  ·  clé API ${demo.apiKey}`);
   if (!config.demoMode && !config.bitnob.webhookSecret)

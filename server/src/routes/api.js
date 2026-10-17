@@ -34,6 +34,14 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).cat
 const merchantOnly = authenticate(['session', 'secret_key']);
 const sessionOnly = authenticate(['session']);
 
+// Les détails d'une erreur Bitnob (IP non autorisée, compte inactif…) restent dans les journaux du serveur
+// et dans l'espace du marchand. Le client final ne voit qu'un message simple.
+const PAYMENT_DOWN = 'Le paiement est momentanément indisponible. Réessayez dans quelques instants.';
+function bitnobFail(res, e, { showDetail = false } = {}) {
+  console.error('Bitnob :', e.message);
+  return fail(res, 502, 'bitnob_error', showDetail ? e.message : PAYMENT_DOWN);
+}
+
 // ── Santé & taux ────────────────────────────────────────────────────────────
 api.get('/health', wrap(async (_req, res) => {
   await query('SELECT 1');
@@ -54,7 +62,7 @@ api.get('/rates', wrap(async (req, res) => {
 }));
 
 // ── Paiements ───────────────────────────────────────────────────────────────
-// POST /v1/checkouts — clé secrète (serveur), clé publique pk_… (bouton navigateur) ou session (caisse)
+// POST /v1/checkouts : clé secrète (serveur), clé publique pk_… (bouton navigateur) ou session (caisse)
 api.post(
   '/checkouts',
   rateLimit({ name: 'checkout', limit: 120, windowMs: 60_000 }),
@@ -85,8 +93,7 @@ api.post(
       res.status(created ? 201 : 200).json(publicCheckout(checkout));
     } catch (e) {
       if (e.status) return fail(res, e.status, 'invalid_request', e.message);
-      console.error('Création de paiement échouée', e);
-      fail(res, 502, 'bitnob_error', e.message);
+      bitnobFail(res, e, { showDetail: req.authVia === 'session' || req.authVia === 'staff' });
     }
   }),
 );
@@ -117,7 +124,7 @@ api.post('/checkouts/:id/refresh', rateLimit({ name: 'refresh', limit: 20, windo
   try {
     await refreshFromBitnob(c);
   } catch (e) {
-    return fail(res, 502, 'bitnob_error', e.message);
+    return bitnobFail(res, e);
   }
   res.json(publicCheckout(await getCheckout(c.id)));
 }));
@@ -127,6 +134,8 @@ api.post('/checkouts/:id/simulate-payment', wrap(async (req, res) => {
   if (!config.demoMode) return fail(res, 403, 'live_mode', 'Simulation désactivée en mode réel.');
   const c = await getCheckout(req.params.id);
   if (!c) return fail(res, 404, 'not_found', 'Paiement introuvable.');
+  // Une vraie facture Bitnob (créée en mode réel) ne se simule jamais, même si le serveur repasse en démo
+  if (!c.demo) return fail(res, 403, 'live_checkout', 'Ce paiement est réel : il ne peut pas être simulé.');
   const event = {
     id: newId('bn_evt'),
     event: 'transfer.success',
@@ -157,13 +166,13 @@ api.post(
     try {
       const { checkout } = await createCheckout(m, {
         amount: req.body.amount,
-        description: forName ? `Pour ${forName}${note ? ` — ${note}` : ''}` : note || `Paiement à ${m.name}`,
-        payer_note: [payer && `De ${payer}`, forName && `pour ${forName}`, note].filter(Boolean).join(' — ') || null,
+        description: forName ? `Pour ${forName}${note ? `, ${note}` : ''}` : note || `Paiement à ${m.name}`,
+        payer_note: [payer && `De ${payer}`, forName && `pour ${forName}`, note].filter(Boolean).join(', ') || null,
         source: 'public_page',
       });
       res.status(201).json(publicCheckout(checkout));
     } catch (e) {
-      fail(res, 502, 'bitnob_error', e.message);
+      bitnobFail(res, e);
     }
   }),
 );
@@ -193,7 +202,7 @@ api.patch('/payment-links/:id', merchantOnly, wrap(async (req, res) => {
 // ── Marchand ────────────────────────────────────────────────────────────────
 api.get('/merchant', merchantOnly, (req, res) => res.json(merchantView(req.merchant)));
 
-api.patch('/merchant', sessionOnly, wrap(async (req, res) => {
+api.patch('/merchant', sessionOnly, rateLimit({ name: 'merchant-update', limit: 30, windowMs: 600_000, key: (req) => req.merchant.id }), wrap(async (req, res) => {
   const b = req.body || {};
   const sets = [];
   const vals = [req.merchant.id];
@@ -228,6 +237,11 @@ api.patch('/merchant', sessionOnly, wrap(async (req, res) => {
     } else {
       const phone = normalizeSnPhone(b.payout.phone);
       if (!NETWORKS[b.payout.network] || !phone) return fail(res, 422, 'invalid_payout', 'Réseau ou numéro invalide.');
+      // Le retrait automatique part vers ce compte : le changer exige le mot de passe, comme un retrait
+      if (!(await verifyPassword(String(b.password || ''), req.merchant.password_hash))) {
+        await audit(req.merchant.id, 'payout_account_password_failed', req);
+        return fail(res, 401, 'invalid_password', 'Mot de passe incorrect.');
+      }
       set('payout_network', b.payout.network);
       set('payout_phone', phone);
       set('payout_name', String(b.payout.name || '').trim().slice(0, 80) || req.merchant.name);
@@ -249,7 +263,8 @@ api.patch('/merchant', sessionOnly, wrap(async (req, res) => {
   }
   if (!sets.length) return res.json(merchantView(req.merchant));
   const m = await one(`UPDATE merchants SET ${sets.join(', ')} WHERE id = $1 RETURNING *`, vals);
-  await audit(m.id, b.auto_payout !== undefined ? (m.auto_payout_enabled ? 'auto_payout_enabled' : 'auto_payout_disabled') : 'settings_updated', req, {
+  const action = b.auto_payout !== undefined ? (m.auto_payout_enabled ? 'auto_payout_enabled' : 'auto_payout_disabled') : b.payout ? 'payout_account_changed' : 'settings_updated';
+  await audit(m.id, action, req, {
     fields: Object.keys(b).filter((k) => k !== 'password'),
   });
   res.json(merchantView(m));

@@ -65,7 +65,7 @@ export const config = {
     dailyMaxXof: Number(process.env.PAYOUT_DAILY_MAX_XOF) || 2_000_000,
   },
 
-  // Durée de validité d'une facture Lightning (secondes) — le taux est garanti pendant ce temps
+  // Durée de validité d'une facture Lightning (secondes). Le taux est garanti pendant ce temps.
   invoiceExpirySeconds: Number(process.env.INVOICE_EXPIRY_SECONDS) || 900,
   // Vérification serveur des factures en attente (filet de sécurité si un webhook se perd)
   pollIntervalMs: Number(process.env.POLL_INTERVAL_MS) || 4000,

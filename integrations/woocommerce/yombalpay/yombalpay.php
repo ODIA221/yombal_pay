@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: YombalPay — Bitcoin Lightning en FCFA
+ * Plugin Name: YombalPay, Bitcoin Lightning en FCFA
  * Description: Acceptez Bitcoin Lightning sur WooCommerce avec des prix en FCFA. Paiements confirmés par webhook signé YombalPay.
  * Version: 1.0.0
  * Author: YombalPay
@@ -90,7 +90,7 @@ add_action('plugins_loaded', function () {
                     'amount'      => (int) round($order->get_total()),
                     'currency'    => 'XOF',
                     'reference'   => 'WC-' . $order->get_id() . '-' . $order->get_order_key(),
-                    'description' => sprintf('%s — commande #%s', get_bloginfo('name'), $order->get_order_number()),
+                    'description' => sprintf('%s, commande #%s', get_bloginfo('name'), $order->get_order_number()),
                     'return_url'  => $this->get_return_url($order),
                     'webhook_url' => WC()->api_request_url('yombalpay'),
                     'customer_email' => $order->get_billing_email(),

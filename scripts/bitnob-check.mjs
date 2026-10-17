@@ -3,7 +3,7 @@ import { bitnob } from '../server/src/lib/bitnob.js';
 
 const step = async (label, fn) => {
   try { const r = await fn(); console.log(`✅ ${label}`, JSON.stringify(r).slice(0, 300)); return r; }
-  catch (e) { console.log(`❌ ${label} — ${e.message}`); }
+  catch (e) { console.log(`❌ ${label} : ${e.message}`); }
 };
 
 await step('Authentification (GET /api/whoami)', () => bitnob.whoami());

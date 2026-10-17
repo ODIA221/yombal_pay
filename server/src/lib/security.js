@@ -78,12 +78,22 @@ export function cleanHttpUrl(value) {
 }
 
 function isPrivateIp(ip) {
-  if (net.isIPv4(ip)) {
-    const [a, b] = ip.split('.').map(Number);
-    return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
+  let v = ip.toLowerCase();
+  // IPv4 encapsulée dans IPv6 (::ffff:10.0.0.1) : on vérifie l'IPv4 qu'elle contient
+  const mapped = v.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if (mapped) v = mapped[1];
+  if (net.isIPv4(v)) {
+    const [a, b] = v.split('.').map(Number);
+    return (
+      a === 0 || a === 10 || a === 127 || a >= 224 || // réseau local, boucle, multicast et réservé
+      (a === 169 && b === 254) || // lien local, dont les métadonnées cloud (169.254.169.254)
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 198 && (b === 18 || b === 19))
+    );
   }
-  const v = ip.toLowerCase();
-  return v === '::1' || v === '::' || v.startsWith('fc') || v.startsWith('fd') || v.startsWith('fe80') || v.startsWith('::ffff:127.') || v.startsWith('::ffff:10.') || v.startsWith('::ffff:192.168.');
+  return v === '::1' || v === '::' || /^f[cd]/.test(v) || /^fe[89ab]/.test(v) || v.startsWith('::ffff:') || v.startsWith('64:ff9b:');
 }
 
 // URL de webhook marchand : protection SSRF (pas d'IP privée en production)
