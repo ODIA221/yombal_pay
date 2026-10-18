@@ -5,13 +5,13 @@ function layout({ title, body, button }) {
   return `<!doctype html><html lang="fr"><body style="margin:0;background:#F3F7F4;font-family:Segoe UI,Arial,sans-serif;color:#0A0F0C">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F7F4;padding:32px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border-radius:20px;border:1px solid #E1E8E3">
-<tr><td style="background:#0A0F0C;border-radius:20px 20px 0 0;padding:20px 28px;color:#FFFFFF;font-weight:800;font-size:18px;letter-spacing:.5px">YOMBAL<span style="color:#E2B341">PAY</span></td></tr>
+<tr><td style="background:#0E0F13;border-radius:20px 20px 0 0;padding:20px 28px;color:#FFFFFF;font-weight:800;font-size:18px;letter-spacing:.5px">YOMBAL<span style="color:#F7931A">PAY</span></td></tr>
 <tr><td style="padding:28px">
 <h1 style="margin:0 0 14px;font-size:22px;line-height:1.3">${esc(title)}</h1>
 ${body}
 ${
   button
-    ? `<p style="margin:26px 0"><a href="${esc(button.href)}" style="background:#8F6A00;color:#FFFFFF;text-decoration:none;font-weight:700;padding:13px 22px;border-radius:999px;display:inline-block">${esc(button.label)}</a></p>
+    ? `<p style="margin:26px 0"><a href="${esc(button.href)}" style="background:#F7931A;color:#1A1206;text-decoration:none;font-weight:700;padding:13px 22px;border-radius:999px;display:inline-block">${esc(button.label)}</a></p>
 <p style="font-size:12.5px;color:#56635B;margin:0">Le bouton ne marche pas ? Copiez ce lien : <br><span style="word-break:break-all">${esc(button.href)}</span></p>`
     : ''
 }
@@ -45,7 +45,7 @@ export function welcomeEmail({ name, appUrl, activationUrl }) {
         p('<b>Prochaines étapes :</b>') +
         p(
           '1. Encaissez depuis la caisse, un lien de paiement ou l’API.<br>2. Partagez votre page publique et votre adresse Lightning.<br>' +
-            `3. <a href="${esc(activationUrl)}" style="color:#8F6A00">Faites vérifier votre entreprise</a> (NINEA, forme juridique, numéro mobile money) pour recevoir de vrais paiements.`,
+            `3. <a href="${esc(activationUrl)}" style="color:#C2410C">Faites vérifier votre entreprise</a> (NINEA, forme juridique, numéro mobile money) pour recevoir de vrais paiements.`,
         ),
       button: { href: appUrl, label: 'Ouvrir mon espace marchand' },
     }),
