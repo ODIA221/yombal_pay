@@ -43,6 +43,7 @@ Client (n'importe où) ── Lightning ou USDT ──▶ YombalPay ──▶ So
 ./run.sh test      # 101 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
 ./run.sh dev       # API rechargée à chaque modification + Vite :5173 + boutique
 ./run.sh check     # diagnostic de la connexion Bitnob
+./run.sh mobile    # passerelle + application mobile à scanner avec Expo Go (même Wi-Fi)
 ./run.sh reconcile # rapprochement comptable : registre ↔ opérations, puis plateforme ↔ compte Bitnob
 ```
 
@@ -106,11 +107,25 @@ Sans `DATABASE_URL`, `run.sh` utilise un PostgreSQL local, utile si le réseau t
   - Journal d'audit visible par le marchand.
 - **Idempotence partout** : référence de commande, référence Bitnob, identifiant d'événement, une seule notification par paiement.
 
+## Application mobile (Expo Go)
+
+L'espace marchand existe aussi en application native, dans `mobile/` (Expo SDK 58, Expo Router) : accueil et solde, caisse à pavé numérique, encaissement plein écran (Lightning ou USDT) avec vibration au paiement, paiements et reçus, retraits Wave / Orange Money / Free Money / Expresso, protection USDT, épargne, liens de paiement, rapprochement comptable. Un caissier n'y voit que la caisse et ses ventes.
+
+1. Installez **Expo Go** sur le téléphone (App Store ou Play Store).
+2. Mettez le téléphone sur **le même Wi-Fi** que l'ordinateur.
+3. Lancez `./run.sh mobile` : la passerelle démarre, l'adresse IP de l'ordinateur est transmise à l'application, et un QR s'affiche.
+4. Scannez le QR (appareil photo sur iPhone, Expo Go sur Android), puis connectez-vous avec le compte de démo.
+
+Si l'application indique « Serveur injoignable » : autorisez Node dans le pare-feu de macOS, ou corrigez l'adresse sur l'écran de connexion (`http://<IP de l'ordinateur>:3000`). Sous Windows : `npm install --prefix mobile`, puis `cd mobile` et `npx expo start --lan`, et saisissez l'adresse IPv4 de l'ordinateur (`ipconfig`) sur l'écran de connexion.
+
+L'application se connecte avec un jeton de session (`Authorization: Bearer ymb_…`) gardé dans le coffre sécurisé du téléphone, au lieu du cookie du navigateur.
+
 ## Architecture
 
 | Dossier | Contenu |
 |---|---|
 | `server/` | API Express et PostgreSQL (Supabase) : comptes, paiements, ledger, conversions, retraits, LNURL, webhooks, temps réel (SSE) |
+| `mobile/` | Application Expo (React Native) pour les marchands et les caissiers, testable avec Expo Go |
 | `web/` | React et Vite : site, espace marchand (accueil, caisse, paiements, portefeuille, liens, développeurs, réglages), pages de paiement, PWA |
 | `sdk/` | SDK Node (`createCheckout`, `verifyWebhook`) et bouton navigateur |
 | `shop/` | Boutique « African Costume Shop » (costumes africains) qui encaisse via le SDK |

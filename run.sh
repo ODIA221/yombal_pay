@@ -7,6 +7,7 @@
 #   ./run.sh all      lance les tests puis la démo
 #   ./run.sh check    diagnostic de la connexion Bitnob (clés requises dans .env)
 #   ./run.sh reconcile  rapprochement comptable : registre ↔ opérations, puis plateforme ↔ compte Bitnob
+#   ./run.sh mobile   passerelle + boutique + application mobile Expo (à scanner avec Expo Go, même Wi-Fi)
 #   ./run.sh rebuild  force la reconstruction du front puis lance la démo
 set -euo pipefail
 
@@ -126,6 +127,24 @@ case "$MODE" in
     node scripts/bitnob-check.mjs ;;
   reconcile)
     node scripts/reconcile.mjs ;;
+  mobile)
+    if [ ! -d mobile/node_modules ]; then
+      info "Installation des dépendances de mobile/…"
+      npm install --prefix mobile --no-audit --no-fund
+    fi
+    # Adresse du Mac sur le Wi-Fi : c'est par elle que le téléphone joint la passerelle
+    IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || true)"
+    [ -n "$IP" ] || die "Adresse IP locale introuvable : êtes-vous connecté au Wi-Fi ?"
+    printf '# Écrit par ./run.sh mobile\nEXPO_PUBLIC_API_URL=http://%s:3000\n' "$IP" > mobile/.env.local
+    build_web
+    free_port 3000; free_port 4000
+    node server/src/index.js & PIDS+=($!)
+    node shop/server.js     & PIDS+=($!)
+    sleep 1
+    ok "Passerelle joignable par le téléphone : http://$IP:3000"
+    echo "   📱 Ouvrez Expo Go et scannez le QR ci-dessous (téléphone sur le même Wi-Fi que ce Mac)."
+    echo "   Si l'app indique « Serveur injoignable » : autorisez Node dans le pare-feu macOS, ou corrigez l'adresse sur l'écran de connexion."
+    (cd mobile && npx expo start --lan) ;;
   *)
     sed -n '2,11p' "$0"; exit 1 ;;
 esac
