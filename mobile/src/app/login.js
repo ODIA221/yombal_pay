@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { api, getBaseUrl, saveServerUrl } from '../lib/api';
+import { api, getBaseUrl, rediscover, saveServerUrl } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Banner, Button, ErrorText, Input, Screen, T, tap, warn } from '../components/ui';
 import { colors, fonts, radius } from '../theme';
@@ -17,10 +17,11 @@ export default function Login() {
   const [editServer, setEditServer] = useState(false);
   const [health, setHealth] = useState(null);
 
+  // url fournie = choix manuel (enregistré) ; sinon détection automatique de la passerelle
   const check = useCallback(async (url) => {
     setHealth({ state: 'checking' });
     try {
-      await saveServerUrl(url);
+      setServer(url === undefined ? await rediscover() : await saveServerUrl(url));
       const h = await api('/v1/health', { auth: false, timeoutMs: 6000 });
       setHealth({ state: 'ok', mode: h.mode });
     } catch (e) {
@@ -28,7 +29,7 @@ export default function Login() {
     }
   }, []);
   useEffect(() => {
-    const t = setTimeout(() => check(getBaseUrl()), 0);
+    const t = setTimeout(() => check(), 0);
     return () => clearTimeout(t);
   }, [check]);
 
@@ -80,7 +81,7 @@ export default function Login() {
         {health?.state === 'error' && <Banner tone="bad" icon="wifi-outline">{health.message}</Banner>}
         {editServer && (
           <View style={{ gap: 10 }}>
-            <Input value={server} onChangeText={setServer} autoCapitalize="none" autoCorrect={false} keyboardType="url" placeholder="http://192.168.1.5:3000" hint="Adresse IP de l'ordinateur qui fait tourner ./run.sh, port 3000." />
+            <Input value={server} onChangeText={setServer} autoCapitalize="none" autoCorrect={false} keyboardType="url" placeholder="http://192.168.1.5:3000" hint="Détectée automatiquement. À saisir seulement si besoin (laisser vide = détection automatique)." />
             <Button title="Tester et enregistrer" variant="ghost" icon="pulse" onPress={() => check(server)} loading={health?.state === 'checking'} />
           </View>
         )}

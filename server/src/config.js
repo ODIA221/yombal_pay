@@ -12,6 +12,8 @@ export const config = {
   // URL publique de la passerelle (ngrok / cloudflared en démo). Sert aux liens /pay/:id et à l'adresse Lightning.
   publicUrl,
   publicHost: new URL(publicUrl).host,
+  // true : l'adresse publique suit l'IP du réseau local (démo sur téléphone, connexion qui change)
+  publicUrlAuto: process.env.PUBLIC_URL_AUTO === 'true',
   isProduction,
   // PostgreSQL local ou Supabase (Project Settings → Database → Connection string, mode « Session pooler »)
   databaseUrl: process.env.DATABASE_URL || 'postgres://localhost:5432/yombal_pay',

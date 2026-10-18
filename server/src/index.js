@@ -11,6 +11,7 @@ import { authRouter } from './routes/auth.js';
 import { lnurlRouter } from './routes/lnurl.js';
 import { webhookRouter } from './routes/webhooks.js';
 import { createCheckout, startPoller } from './lib/payments.js';
+import { watchLanIp } from './lib/lan.js';
 import { seedDemo } from './seed.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -117,6 +118,16 @@ try {
   process.exit(1);
 }
 const demo = config.seedDemo ? await seedDemo() : null;
+
+// Adresse qui suit le réseau local : les liens (paiement, reçu, adresse Lightning) restent valides
+// quand l'ordinateur change de Wi-Fi pendant la démo
+if (config.publicUrlAuto)
+  watchLanIp((ip) => {
+    const before = config.publicUrl;
+    config.publicUrl = `http://${ip}:${config.port}`;
+    config.publicHost = new URL(config.publicUrl).host;
+    if (before !== config.publicUrl) console.log(`🌐 Adresse locale : ${config.publicUrl}`);
+  });
 
 const server = app.listen(config.port, () => {
   console.log(`\n⚡ YombalPay sur ${config.publicUrl}  (port ${config.port})`);

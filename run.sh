@@ -120,10 +120,41 @@ configure_lan() {
   local public_url shop_url
   public_url="$(env_value PUBLIC_URL)"
   shop_url="$(env_value SHOP_URL)"
-  if [ -z "$public_url" ] || echo "$public_url" | grep -qE '//(localhost|127\.0\.0\.1)'; then export PUBLIC_URL="http://$LAN_IP:3000"; else export PUBLIC_URL="$public_url"; fi
-  if [ -z "$shop_url" ] || echo "$shop_url" | grep -qE '//(localhost|127\.0\.0\.1)'; then export SHOP_URL="http://$LAN_IP:4000"; else export SHOP_URL="$shop_url"; fi
+  # *_AUTO : la passerelle et la boutique suivent elles-mêmes l'IP si la connexion change pendant la démo
+  if [ -z "$public_url" ] || echo "$public_url" | grep -qE '//(localhost|127\.0\.0\.1)'; then export PUBLIC_URL="http://$LAN_IP:3000" PUBLIC_URL_AUTO=true; else export PUBLIC_URL="$public_url"; fi
+  if [ -z "$shop_url" ] || echo "$shop_url" | grep -qE '//(localhost|127\.0\.0\.1)'; then export SHOP_URL="http://$LAN_IP:4000" SHOP_URL_AUTO=true; else export SHOP_URL="$shop_url"; fi
   printf '# Écrit par ./run.sh (adresse de la passerelle vue par le téléphone)\nEXPO_PUBLIC_API_URL=http://%s:3000\n' "$LAN_IP" > mobile/.env.local
   ok "Adresse locale : $LAN_IP (écrite dans mobile/.env.local)"
+}
+
+# Surveille la connexion pendant toute la session : nouvelle IP locale → nouveau QR pour Expo Go
+# (la passerelle et la boutique se mettent à jour seules) ; nouvelle IP publique → à autoriser chez Bitnob.
+watch_network() {
+  local last="$LAN_IP" last_pub="" ip pub n=0 live
+  live="$(curl -s --max-time 2 http://localhost:3000/v1/health | grep -q '"mode":"live"' && echo 1 || true)"
+  while sleep 5; do
+    ip="$(lan_ip)"
+    if [ -n "$ip" ] && [ "$ip" != "$last" ]; then
+      last="$ip"
+      printf '# Écrit par ./run.sh (adresse de la passerelle vue par le téléphone)\nEXPO_PUBLIC_API_URL=http://%s:3000\n' "$ip" > mobile/.env.local
+      printf '\n\033[1;33m🌐 Nouvelle connexion : adresse locale %s\033[0m\n' "$ip"
+      echo "   Passerelle http://$ip:3000 · boutique http://$ip:4000 (liens mis à jour automatiquement)"
+      if [ "$NO_MOBILE" != 1 ] && [ -d mobile/node_modules/qrcode ]; then
+        echo "   📱 Dans Expo Go, scannez ce nouveau QR (exp://$ip:8081) :"
+        node -e "require('./mobile/node_modules/qrcode').toString(process.argv[1], { type: 'terminal', small: true }, (e, s) => console.log(s))" "exp://$ip:8081" || true
+      fi
+    fi
+    # Adresse publique (Bitnob n'accepte que les IP autorisées) : vérifiée toutes les minutes en mode réel
+    n=$((n + 1))
+    if [ -n "$live" ] && [ $((n % 12)) -eq 1 ]; then
+      pub="$(curl -s --max-time 4 https://api.ipify.org || true)"
+      if [ -n "$pub" ] && [ "$pub" != "$last_pub" ]; then
+        if [ -n "$last_pub" ]; then printf '\n\033[1;33m🔑 Adresse publique changée : %s → à autoriser dans le tableau de bord Bitnob\033[0m\n' "$pub"
+        else printf '   🔑 Adresse publique (à autoriser chez Bitnob) : %s\n' "$pub"; fi
+        last_pub="$pub"
+      fi
+    fi
+  done
 }
 
 # Passerelle et boutique en arrière-plan, journaux dans .run-logs/ (l'écran reste libre pour le QR d'Expo)
@@ -200,6 +231,7 @@ run_demo() {
   configure_lan
   start_servers
   banner
+  watch_network & PIDS+=($!)
   if [ "$NO_MOBILE" = 1 ]; then
     tail -n 0 -f "$LOG_DIR/server.log" "$LOG_DIR/shop.log" & PIDS+=($!)
     wait
