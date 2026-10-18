@@ -37,7 +37,9 @@ shop.post("/commander", express.urlencoded({ extended: false }), async (req, res
 
   try {
     // Appel à l'API YombalPay, exactement comme le ferait un site marchand externe.
-    const r = await fetch(`http://127.0.0.1:${config.port}/v1/checkouts`, {
+    // Sur Vercel, pas de serveur local : on passe par l'adresse publique.
+    const api = process.env.VERCEL ? base : `http://127.0.0.1:${config.port}`;
+    const r = await fetch(`${api}/v1/checkouts`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.secretKey}`,
