@@ -66,7 +66,7 @@ export default function Wallet() {
 
       <View style={{ gap: 10, marginTop: 14 }}>
         <Button title="Retirer vers mobile money" icon="arrow-up" size="lg" onPress={() => setSheet('payout')} />
-        <Button title="Protéger en USDT" icon="shield-checkmark-outline" variant="ghost" onPress={() => setSheet('convert')} disabled={b.btc.sats < 1000} />
+        <Button title="Protéger en USDT" icon="shield-checkmark-outline" variant="ghost" onPress={() => setSheet('convert')} />
       </View>
 
       {!data.corridor.available && (
@@ -208,6 +208,7 @@ function ConvertSheet({ visible, onClose, onDone, balance }) {
           <Text style={st.assetSub}>prix final confirmé par Bitnob</Text>
         </View>
       </View>
+      {sats < 1000 && <Banner tone="warn" icon="alert-circle-outline">{balance.btc.sats < 1000 ? 'Solde Bitcoin insuffisant : il faut au moins 1 000 sats pour convertir. En mode réel, seul l’argent réellement reçu compte (les ventes de démonstration sont exclues) : encaissez d’abord un paiement.' : 'Moins de 1 000 sats avec ce pourcentage : choisissez-en un plus élevé.'}</Banner>}
       <ErrorText>{error}</ErrorText>
       <Button title="Convertir maintenant" icon="shield-checkmark" size="lg" onPress={submit} loading={busy} disabled={sats < 1000} />
     </Sheet>
