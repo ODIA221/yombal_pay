@@ -110,7 +110,7 @@ Sans `DATABASE_URL`, `run.sh` utilise un PostgreSQL local, utile si le réseau t
 
 ## Application mobile (Expo Go)
 
-L'espace marchand existe aussi en application native, dans `mobile/` (Expo SDK 58, Expo Router) : accueil et solde, caisse à pavé numérique, encaissement plein écran (Lightning ou USDT) avec vibration au paiement, paiements et reçus, retraits Wave / Orange Money / Free Money / Expresso, protection USDT, épargne, liens de paiement, rapprochement comptable. Un caissier n'y voit que la caisse et ses ventes.
+L'espace marchand existe aussi en application native, dans `mobile/` (Expo SDK 57 (la version d’Expo Go actuelle), Expo Router) : accueil et solde, caisse à pavé numérique, encaissement plein écran (Lightning ou USDT) avec vibration au paiement, paiements et reçus, retraits Wave / Orange Money / Free Money / Expresso, protection USDT, épargne, liens de paiement, rapprochement comptable. Un caissier n'y voit que la caisse et ses ventes.
 
 1. Installez **Expo Go** sur le téléphone (App Store ou Play Store).
 2. Mettez le téléphone sur **le même Wi-Fi** que l'ordinateur.
