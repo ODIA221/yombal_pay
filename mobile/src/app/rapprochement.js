@@ -8,10 +8,10 @@ import { Button, Card, ErrorText, Loading, Screen, T } from '../components/ui';
 import { colors, fonts, radius } from '../theme';
 
 const CHECKS = [
-  ['payments', 'paiements Lightning', 'crédit et commission au bon montant, uniquement si payé'],
-  ['deposits', 'dépôts USDT', 'chaque dépôt crédité une seule fois'],
-  ['payouts', 'retraits', 'débit exact, remboursement si et seulement si échec'],
-  ['conversions', 'conversions', 'sortie BTC et entrée USDT aux montants convertis'],
+  ['payments', 'paiement Lightning', 'paiements Lightning', 'crédit et commission au bon montant, uniquement si payé'],
+  ['deposits', 'dépôt USDT', 'dépôts USDT', 'chaque dépôt crédité une seule fois'],
+  ['payouts', 'retrait', 'retraits', 'débit exact, remboursement si et seulement si échec'],
+  ['conversions', 'conversion', 'conversions', 'sortie BTC et entrée USDT aux montants convertis'],
 ];
 
 export default function Reconciliation() {
@@ -29,12 +29,12 @@ export default function Reconciliation() {
       </View>
 
       <Card style={{ paddingVertical: 4 }}>
-        {CHECKS.map(([k, label, what], i) => (
+        {CHECKS.map(([k, one, many, what], i) => (
           <View key={k} style={[st.row, i < CHECKS.length - 1 && st.line]}>
             <Ionicons name="checkmark-circle" size={22} color={colors.green} />
             <View style={{ flex: 1 }}>
               <Text style={st.rowTitle}>
-                {r.checked[k]} {label}
+                {r.checked[k]} {r.checked[k] > 1 ? many : one}
               </Text>
               <T.Muted>{what}</T.Muted>
             </View>
