@@ -32,7 +32,7 @@ Client (n'importe où) ── Lightning ou USDT ──▶ YombalPay ──▶ So
 | **Liens de paiement** WhatsApp à montant fixe | Graphique des ventes, export CSV, preuve de paiement | Journal des notifications, renvoi manuel |
 | **« Payer pour un proche »** (diaspora), pages client **FR / EN** | **Retrait automatique** dès qu'un seuil est atteint | **Plugin WooCommerce** (`integrations/woocommerce`) |
 | **Comptes caissiers** : caisse et ventes uniquement | Journal d'activité du compte | |
-| **Paiement en USDT / USDC** (Tron, BNB Chain, Polygon) : adresse de dépôt Bitnob par paiement | **Paiements USDT crédités en USDT** : aucune volatilité | |
+| **Paiement en USDT / USDC** (Polygon, Solana ; Ethereum et Optimism en option) : adresse de dépôt Bitnob par paiement | **Paiements USDT crédités en USDT** : aucune volatilité | |
 | **Reçu de paiement** imprimable / PDF, avec preuve et QR de vérification | **Épargne en USDT** : objectif (Tabaski…), % de chaque vente mis de côté, déblocage par mot de passe | |
 | **Frais évités** affichés au client avant et après paiement | **Compteur d'impact** : total des frais évités par vos clients | |
 

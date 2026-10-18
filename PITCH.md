@@ -56,7 +56,7 @@ Choisissez **la variante A ou B** selon ce que `./run.sh check` affiche le jour 
 
 1. **La caisse (20 s)** : « Aïssatou est dans sa boutique. » Sur le téléphone, tapez **500**, puis **Encaisser**. Le QR s'affiche.
 2. **Le jury paie (30 s)** : tendez le téléphone à un membre du jury avec un portefeuille Lightning sandbox. Si personne n'en a, payez avec le vôtre. La caisse **sonne**, le grand ✓ vert apparaît, et le solde se met à jour sur l'écran projeté. « Ce paiement vient de passer par Bitnob Lightning, confirmé par un webhook signé. » *C'est le moment le plus fort : taisez-vous pendant que ça sonne.*
-3. **USDT (20 s)** : sur la page de paiement, onglet **USDT ou USDC**, réseau Tron. « Fatou a des dollars numériques sur Binance ? Bitnob crée une adresse pour ce seul paiement. »
+3. **USDT (20 s)** : sur la page de paiement, onglet **USDT ou USDC**, réseau Polygon. « Fatou a des dollars numériques sur Binance ? Bitnob crée une adresse pour ce seul paiement. »
 4. **L'épargne Tabaski (25 s)** : ouvrez **Épargne**. « Aïssatou met 10 % de chaque vente de côté pour la Tabaski, en dollars stables. Le Bitcoin peut baisser, son épargne non. » Montrez la barre de progression.
 5. **Retrait Wave (25 s)** : **Portefeuille → Retirer vers Wave**, 2 000 FCFA, mot de passe. Le statut passe à « Reçu ». « Payouts Bitnob. La boucle est bouclée : du monde entier jusqu'au téléphone d'Aïssatou. »
 
@@ -68,7 +68,7 @@ Même déroulé, mais **dites-le dès le début de la démo**, une seule fois, c
 Puis :
 1. **La caisse** : 500 FCFA, **Encaisser**.
 2. **Simuler le paiement** : la caisse **sonne** et le ✓ apparaît. « Côté Aïssatou, c'est exactement ce qu'elle verra. »
-3. **USDT** : onglet USDT, réseau Tron, puis **Simuler**.
+3. **USDT** : onglet USDT, réseau Polygon, puis **Simuler**.
 4. **Épargne** et 5. **Retrait Wave** : comme dans la variante A. Le retrait est marqué « simulé ».
 
 Pour compenser l'absence de vrai paiement, insistez sur le code : « L'intégration Bitnob est complète dans le code : signature HMAC, factures Lightning, adresses USDT, trading, payouts. Il ne manque que la validation de notre compte. » Un jury pardonne un blocage administratif, jamais une démo simulée présentée comme réelle.

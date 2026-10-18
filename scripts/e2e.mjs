@@ -114,15 +114,15 @@ try {
   };
   const u0 = await json(await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: K, body: JSON.stringify({ amount: 12000, reference: 'usdt-1' }) }));
   check(u0.usdt?.available && u0.usdt.amount === '20.00', `Paiement de 12 000 FCFA payable en ${u0.usdt?.amount} USDT`);
-  const u1 = await json(await fetch(`${API}/v1/checkouts/${u0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'tron' }) }));
-  const tronAddr = u1.usdt?.addresses?.[0]?.address;
-  check(/^T\w{33}$/.test(tronAddr || ''), `Adresse de dépôt Tron générée : ${tronAddr}`);
-  const u2 = await json(await fetch(`${API}/v1/checkouts/${u0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'tron' }) }));
-  check(u2.usdt.addresses.length === 1 && u2.usdt.addresses[0].address === tronAddr, 'Même réseau → même adresse (idempotent)');
+  const u1 = await json(await fetch(`${API}/v1/checkouts/${u0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'polygon' }) }));
+  const polyAddr = u1.usdt?.addresses?.[0]?.address;
+  check(/^0x[0-9a-f]{40}$/.test(polyAddr || ''), `Adresse de dépôt Polygon générée : ${polyAddr}`);
+  const u2 = await json(await fetch(`${API}/v1/checkouts/${u0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'polygon' }) }));
+  check(u2.usdt.addresses.length === 1 && u2.usdt.addresses[0].address === polyAddr, 'Même réseau → même adresse (idempotent)');
   check((await fetch(`${API}/v1/checkouts/${u0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'dogecoin' }) })).status === 422, 'Réseau non proposé refusé');
 
   const usdtBefore = (await json(await fetch(`${API}/v1/overview`, { headers: K }))).balance.usdt.micro;
-  const dep = (n, micro) => ({ event: 'deposit.success', event_id: `evt_dep_${n}`, transaction_id: `tx_dep_${n}`, address: tronAddr, chain: 'tron', currency: 'USDT', amount: String(micro), hash: `0xhash${n}` });
+  const dep = (n, micro) => ({ event: 'deposit.success', event_id: `evt_dep_${n}`, transaction_id: `tx_dep_${n}`, address: polyAddr, chain: 'polygon', currency: 'USDT', amount: String(micro), hash: `0xhash${n}` });
   const forged = await fetch(`${API}/webhooks/bitnob`, { method: 'POST', headers: { 'x-bitnob-signature': 'deadbeef' }, body: JSON.stringify(dep(0, 20_000_000)) });
   check(forged.status === 401, 'Dépôt USDT non signé rejeté (401)');
   const part = await json(await signed(dep(1, 5_000_000)));
@@ -138,13 +138,13 @@ try {
   const extra = await json(await signed(dep(3, 1_000_000)));
   const usdtExtra = (await json(await fetch(`${API}/v1/overview`, { headers: K }))).balance.usdt.micro;
   check(extra.extra && usdtExtra - usdtAfter === 990_000, 'Dépôt arrivé après paiement : crédité quand même (commission déduite)');
-  check((await json(await signed({ ...dep(4, 1_000_000), address: 'Tinconnue' }))).status === 'ignored', 'Dépôt sur une adresse inconnue ignoré');
+  check((await json(await signed({ ...dep(4, 1_000_000), address: '0xinconnue' }))).status === 'ignored', 'Dépôt sur une adresse inconnue ignoré');
 
   const p0 = await json(await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: K, body: JSON.stringify({ amount: 12000, reference: 'usdt-partiel' }) }));
-  const p1 = await json(await fetch(`${API}/v1/checkouts/${p0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'bsc' }) }));
-  const bscAddr = p1.usdt.addresses[0].address;
+  const p1 = await json(await fetch(`${API}/v1/checkouts/${p0.id}/usdt`, { method: 'POST', headers: K, body: JSON.stringify({ chain: 'solana' }) }));
+  const solAddr = p1.usdt.addresses[0].address;
   const usdtPre = (await json(await fetch(`${API}/v1/overview`, { headers: K }))).balance.usdt.micro;
-  const pr = await json(await signed({ ...dep(5, 3_000_000), address: bscAddr, chain: 'bsc' }));
+  const pr = await json(await signed({ ...dep(5, 3_000_000), address: solAddr, chain: 'solana' }));
   const usdtPost = (await json(await fetch(`${API}/v1/overview`, { headers: K }))).balance.usdt.micro;
   check(pr.status === 'pending' && usdtPost - usdtPre === 2_970_000, 'Paiement partiel jamais complété : les 3 USDT reçus sont quand même crédités');
 
