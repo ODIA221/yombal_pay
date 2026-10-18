@@ -95,6 +95,26 @@
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeAll(); });
   window.addEventListener("scroll", function () { shell.classList.toggle("scrolled", window.scrollY > 24); }, { passive: true });
 
+  // Indicateur qui glisse sous le lien survolé ; une page peut aussi marquer un lien actif
+  // (l'accueil suit la section visible) avec YombalNav.setActive(lien).
+  var linksEl = document.getElementById("links"), ind = document.getElementById("indicator");
+  var activeEl = null;
+  function moveTo(el) {
+    if (!el) { ind.style.opacity = 0; return; }
+    ind.style.opacity = 1;
+    ind.style.left = el.offsetLeft + "px";
+    ind.style.width = el.offsetWidth + "px";
+  }
+  linksEl.querySelectorAll("a, button").forEach(function (el) {
+    el.addEventListener("mouseenter", function () { moveTo(el); });
+    el.addEventListener("focus", function () { moveTo(el); });
+  });
+  linksEl.addEventListener("mouseleave", function () { moveTo(activeEl); });
+  window.YombalNav = {
+    links: linksEl,
+    setActive: function (el) { activeEl = el; moveTo(el); }
+  };
+
   /* ---------- Marchand connecté : avatar dans la barre ---------- */
   fetch("/v1/auth/me", { cache: "no-store", credentials: "same-origin" })
     .then(function (r) { return r.ok ? r.json() : null; })

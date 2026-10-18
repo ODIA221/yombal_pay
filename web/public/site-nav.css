@@ -114,7 +114,6 @@
 .sheet .sheet-foot { display: grid; gap: 10px; padding: 12px 14px 4px; border-top: 1px solid var(--line); margin-top: 6px; }
 .sheet .ticker { color: var(--grey); border-color: var(--line); justify-self: start; }
 .sheet .ticker b { color: var(--ink); }
-@media (max-width: 1140px) { .login { display: none; } }
 @media (max-width: 1020px) {
   .links, .login, .country { display: none; }
   .menu-btn { display: inline-block; }

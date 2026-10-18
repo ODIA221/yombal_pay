@@ -2,33 +2,19 @@
 (function () {
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Indicateur qui glisse sous le lien survolé ou la section visible
-  var linksEl = document.getElementById("links"), ind = document.getElementById("indicator");
-  var spyLinks = Array.prototype.slice.call(linksEl.querySelectorAll("[data-spy]"));
-  var activeEl = null;
-  function moveTo(el) {
-    if (!el) { ind.style.opacity = 0; return; }
-    ind.style.opacity = 1;
-    ind.style.left = el.offsetLeft + "px";
-    ind.style.width = el.offsetWidth + "px";
-  }
-  linksEl.querySelectorAll("a, button").forEach(function (el) {
-    el.addEventListener("mouseenter", function () { moveTo(el); });
-    el.addEventListener("focus", function () { moveTo(el); });
-  });
-  linksEl.addEventListener("mouseleave", function () { moveTo(activeEl); });
+  // La barre (site-nav.js) suit la section visible : Produits, Développeurs ou Tarifs
+  var spyLinks = Array.prototype.slice.call(YombalNav.links.querySelectorAll("[data-spy]"));
   if ("IntersectionObserver" in window) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (en) {
         if (!en.isIntersecting) return;
         spyLinks.forEach(function (l) { l.classList.toggle("on", l.dataset.spy === en.target.id); });
-        activeEl = spyLinks.filter(function (l) { return l.dataset.spy === en.target.id; })[0] || null;
-        moveTo(activeEl);
+        YombalNav.setActive(spyLinks.filter(function (l) { return l.dataset.spy === en.target.id; })[0] || null);
       });
     }, { rootMargin: "-45% 0px -50% 0px" });
     ["produits", "developpeur", "tarifs", "lancement"].forEach(function (id) { var s = document.getElementById(id); if (s) io.observe(s); });
-    document.querySelectorAll(".hero, #parcours, #securite, #pourquoi, #partenaires, #contact").forEach(function (s) {
-      new IntersectionObserver(function (es) { es.forEach(function (en) { if (en.isIntersecting) { spyLinks.forEach(function (l) { l.classList.remove("on"); }); activeEl = null; moveTo(null); } }); }, { rootMargin: "-45% 0px -50% 0px" }).observe(s);
+    document.querySelectorAll(".hero, #clients, #parcours, #securite, #pourquoi, #partenaires, #contact").forEach(function (s) {
+      new IntersectionObserver(function (es) { es.forEach(function (en) { if (en.isIntersecting) { spyLinks.forEach(function (l) { l.classList.remove("on"); }); YombalNav.setActive(null); } }); }, { rootMargin: "-45% 0px -50% 0px" }).observe(s);
     });
   }
 
