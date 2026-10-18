@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import crypto from 'node:crypto';
 
 const port = Number(process.env.PORT) || 3000;
 const clientId = process.env.BITNOB_CLIENT_ID || '';
@@ -84,6 +85,29 @@ export const config = {
     tolerancePct: Number(process.env.USDT_TOLERANCE_PCT ?? 1),
   },
 
+  // Signature des jetons courts (lien de confirmation d'e-mail, connexion Google). Sans valeur, un secret
+  // aléatoire est tiré au démarrage : les liens déjà envoyés ne marchent plus après un redémarrage.
+  signingSecret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+
+  // E-mails (confirmation d'adresse, vérification de l'entreprise). Sans SMTP, le lien est affiché dans le terminal.
+  smtp: {
+    host: process.env.SMTP_HOST || '',
+    port: Number(process.env.SMTP_PORT) || 465,
+    user: process.env.SMTP_USER || '',
+    pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''), // Google affiche le mot de passe d'application par groupes de 4
+    from: process.env.MAIL_FROM || process.env.SMTP_USER || '',
+  },
+
+  // Connexion avec Google (OAuth 2.0 / OpenID Connect). Sans identifiants, le bouton n'apparaît pas.
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    tokenUrl: process.env.GOOGLE_TOKEN_URL || 'https://oauth2.googleapis.com/token',
+  },
+
+  // Administrateurs YombalPay : valident les demandes de vérification des entreprises
+  adminEmails: (process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean),
+
   // Durée de validité d'une facture Lightning (secondes). Le taux est garanti pendant ce temps.
   invoiceExpirySeconds: Number(process.env.INVOICE_EXPIRY_SECONDS) || 900,
   // Vérification serveur des factures en attente (filet de sécurité si un webhook se perd)
@@ -106,6 +130,11 @@ export const config = {
     webhookUrl: process.env.DEMO_MERCHANT_WEBHOOK_URL || 'http://localhost:4000/webhooks/yombalpay',
   },
 };
+
+// Argent réel : hors mode démo, tant que Bitnob n'a pas confirmé une clé sandbox (GET /api/whoami, lu au
+// démarrage dans config.bitnob.environment). Seules les entreprises vérifiées peuvent alors encaisser et retirer ;
+// en sandbox et en démo, tout marchand dont l'e-mail est confirmé peut tester. Environnement inconnu = prudence.
+export const realMoney = () => !config.demoMode && config.bitnob.environment !== 'sandbox';
 
 // Taux de change officiel et fixe EUR → XOF (garanti par l'accord monétaire UEMOA)
 export const EUR_TO_XOF = 655.957;

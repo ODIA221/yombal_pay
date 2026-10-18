@@ -121,6 +121,9 @@ export default function Settings() {
             ? 'Un code est défini : il suffit pour confirmer un retrait ou débloquer l’épargne. Le mot de passe reste accepté.'
             : 'Confirmez vos retraits avec un code à 4-6 chiffres, plus rapide à taper que le mot de passe.'}
         </p>
+        {!merchant.has_password && (
+          <p className="callout warn">Compte Google : choisissez d'abord un mot de passe (section Sécurité). Il sert à définir le code de retrait.</p>
+        )}
         <form
           className="stack"
           onSubmit={async (e) => {
@@ -166,20 +169,27 @@ export default function Settings() {
             try {
               await api('/v1/auth/password', { method: 'POST', body: pw });
               setPw({ current_password: '', new_password: '' });
-              toast('Mot de passe modifié. Vos autres appareils ont été déconnectés.');
+              if (!merchant.has_password) setMerchant({ ...merchant, has_password: true });
+              toast(merchant.has_password ? 'Mot de passe modifié. Vos autres appareils ont été déconnectés.' : 'Mot de passe enregistré.');
             } catch (err) {
               toast(err.message, 'bad');
             }
           }}
         >
-          <Field label="Mot de passe actuel">
-            <input type="password" autoComplete="current-password" required value={pw.current_password} onChange={(e) => setPw({ ...pw, current_password: e.target.value })} />
-          </Field>
+          {merchant.has_password ? (
+            <Field label="Mot de passe actuel">
+              <input type="password" autoComplete="current-password" required value={pw.current_password} onChange={(e) => setPw({ ...pw, current_password: e.target.value })} />
+            </Field>
+          ) : (
+            <p className="callout warn">
+              Vous vous connectez avec Google. Choisissez un mot de passe : il est demandé pour retirer de l'argent et débloquer l'épargne.
+            </p>
+          )}
           <Field label="Nouveau mot de passe" hint="8 caractères minimum, une lettre et un chiffre.">
             <input type="password" autoComplete="new-password" required minLength={8} value={pw.new_password} onChange={(e) => setPw({ ...pw, new_password: e.target.value })} />
           </Field>
           <div className="row wrap">
-            <button className="btn primary sm">Changer le mot de passe</button>
+            <button className="btn primary sm">{merchant.has_password ? 'Changer le mot de passe' : 'Choisir mon mot de passe'}</button>
             <button
               type="button"
               className="btn ghost sm"

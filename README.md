@@ -99,6 +99,9 @@ Sans `DATABASE_URL`, `run.sh` utilise un PostgreSQL local, utile si le réseau t
   - Les mots de passe sont hachés avec scrypt.
   - Les sessions passent par un cookie HttpOnly SameSite. Le jeton est stocké haché et invalidé à la déconnexion.
   - Les tentatives de connexion sont limitées par IP et par e-mail. Le temps de réponse est le même que le compte existe ou non.
+  - **Connexion avec Google** (OpenID Connect, sans bibliothèque) : `state` et `nonce` vérifiés, jeton contrôlé (émetteur, destinataire, expiration, e-mail vérifié). Un compte Google choisit un mot de passe avant de pouvoir retirer.
+  - **E-mail confirmé** avant le premier encaissement : lien signé (HMAC), valable 24 h. Sans SMTP, le lien s'affiche dans le terminal.
+  - **Vérification de l'entreprise** (NINEA, RCCM, forme juridique, représentant, mobile money) dans `/app/activation`, validée par un administrateur (`ADMIN_EMAILS`) dans `/app/admin`. Avec un secret Bitnob de production, seules les entreprises vérifiées encaissent et retirent.
 - **Rôles** : un caissier n'accède qu'à la caisse et à ses propres ventes (ni solde, ni retraits, ni réglages). S'il est désactivé, il est déconnecté immédiatement. Activer le retrait automatique exige le mot de passe du propriétaire.
 - **Clés API** : la clé secrète est hachée (SHA-256), affichée une seule fois et révocable. La clé publique `pk_` ne peut que créer des paiements. Les retraits sont impossibles avec une clé API : il faut une session et la confirmation du mot de passe.
 - **Web**

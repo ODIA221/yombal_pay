@@ -1,9 +1,10 @@
 // Client HTTP du front : cookie de session (même origine) + en-tête anti-CSRF sur les écritures.
 export class ApiError extends Error {
-  constructor(message, status, code) {
+  constructor(message, status, code, fields) {
     super(message);
     this.status = status;
     this.code = code;
+    this.fields = fields; // { champ: message } quand le serveur détaille les champs à corriger
   }
 }
 
@@ -13,7 +14,7 @@ export async function api(path, { method = 'GET', body } = {}) {
   if (method !== 'GET') headers['X-YombalPay-CSRF'] = '1';
   const res = await fetch(path, { method, headers, credentials: 'same-origin', body: body !== undefined ? JSON.stringify(body) : undefined });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(json?.error?.message || `Erreur ${res.status}`, res.status, json?.error?.code);
+  if (!res.ok) throw new ApiError(json?.error?.message || `Erreur ${res.status}`, res.status, json?.error?.code, json?.error?.fields);
   return json;
 }
 

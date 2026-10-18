@@ -4,7 +4,9 @@ import helmet from 'helmet';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { config } from './config.js';
+import { config, realMoney } from './config.js';
+import { mailConfigured } from './lib/mailer.js';
+import { googleEnabled } from './lib/google.js';
 import { migrate, one, pool } from './db/pool.js';
 import { api } from './routes/api.js';
 import { authRouter } from './routes/auth.js';
@@ -76,6 +78,7 @@ app.get('/l/:slug', async (req, res) => {
     });
     res.redirect(302, `/pay/${checkout.id}`);
   } catch (e) {
+    if (e.status === 403) return res.status(403).send('Ce marchand ne peut pas encore recevoir de paiements.');
     res.status(502).send('Impossible de créer le paiement pour le moment. Réessayez dans un instant.');
     console.error('Lien de paiement :', e.message);
   }
@@ -134,17 +137,26 @@ const server = app.listen(config.port, () => {
   console.log(`\n⚡ YombalPay sur ${config.publicUrl}  (port ${config.port})`);
   console.log(`   Mode : ${config.demoMode ? 'DÉMO (factures simulées)' : 'RÉEL, Bitnob ' + config.bitnob.baseUrl}  ·  retraits : ${config.payouts.mode}`);
   console.log(`   Webhook Bitnob à déclarer : ${config.publicUrl}/webhooks/bitnob`);
-  // Environnement réel de la clé, tel que Bitnob le déclare (sandbox ou production)
-  if (!config.demoMode)
+  // Environnement réel de la clé, tel que Bitnob le déclare (sandbox ou production). Il décide aussi si les
+  // entreprises doivent être vérifiées pour encaisser (realMoney) ; sans réponse, on réessaie chaque minute.
+  const learnBitnobEnvironment = () =>
     bitnob
       .whoami()
-      .then((w) =>
-        w?.environment === 'production'
-          ? console.warn(`⚠️  Bitnob : clé de PRODUCTION (${w.client_name}) : paiements et retraits réels.`)
-          : console.log(`   Bitnob : environnement ${w?.environment ?? 'inconnu'} (${w?.client_name ?? 'compte'}), aucun argent réel en sandbox`),
-      )
-      .catch((e) => console.warn(`⚠️  Bitnob injoignable au démarrage : ${e.message}`));
+      .then((w) => {
+        config.bitnob.environment = w?.environment ?? 'unknown';
+        if (w?.environment === 'production') console.warn(`⚠️  Bitnob : clé de PRODUCTION (${w.client_name}) : paiements et retraits réels.`);
+        else console.log(`   Bitnob : environnement ${w?.environment ?? 'inconnu'} (${w?.client_name ?? 'compte'}), aucun argent réel en sandbox`);
+        if (realMoney()) console.log('   Argent réel : encaissements et retraits réservés aux entreprises vérifiées.');
+      })
+      .catch((e) => {
+        console.warn(`⚠️  Bitnob injoignable : ${e.message} (nouvel essai dans 1 min ; d'ici là, seules les entreprises vérifiées encaissent)`);
+        setTimeout(learnBitnobEnvironment, 60_000).unref();
+      });
+  if (!config.demoMode) learnBitnobEnvironment();
   if (demo) console.log(`   Compte démo : ${demo.email}${demo.password ? ` / mot de passe généré : ${demo.password}` : ' (mot de passe du .env)'}  ·  clé API ${demo.apiKey}`);
+  console.log(
+    `   E-mails : ${mailConfigured() ? `SMTP ${config.smtp.host}` : 'non envoyés (liens affichés ici)'}  ·  Google : ${googleEnabled() ? 'activé' : 'désactivé'}  ·  administrateurs : ${config.adminEmails.length}`,
+  );
   if (!config.demoMode && !config.bitnob.webhookSecret)
     console.warn(
       '⚠️  BITNOB_WEBHOOK_SECRET absent : les paiements seront reconfirmés via l’API Bitnob, mais les événements de retrait non signés seront ignorés.',

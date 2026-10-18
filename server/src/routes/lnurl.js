@@ -61,6 +61,8 @@ lnurlRouter.get(
         disposable: false,
       });
     } catch (e) {
+      // Compte pas encore confirmé ou vérifié : le portefeuille affiche la raison
+      if (e.status === 403) return lnError(res, `${m.name} ne peut pas encore recevoir de paiements.`);
       console.error('Adresse Lightning, facture impossible :', e.message);
       lnError(res, 'Facture momentanément indisponible, réessayez dans quelques instants.');
     }

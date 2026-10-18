@@ -390,6 +390,10 @@ td a { text-decoration: none; color: var(--text); }
 .auth-logo { text-decoration: none; }
 .auth-switch { margin-top: 18px; text-align: center; color: var(--muted); font-size: 14px; }
 .auth-switch a { color: var(--btc); font-weight: 600; text-decoration: none; }
+.google-btn { display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; }
+.auth-or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; margin: 16px 0; }
+.auth-or::before, .auth-or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.account-banner { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; margin: 16px 16px 0; }
 .auth-foot { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; text-align: center; }
 .demo-login { margin-top: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 12px; border: 1px dashed var(--line-2); background: none; color: var(--muted); font: 500 13px var(--body); cursor: pointer; }
 .demo-login:hover { color: var(--text); border-color: var(--amber); }

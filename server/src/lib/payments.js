@@ -11,6 +11,7 @@ import { autoConvert, creditPayment, usdtFee } from './ledger.js';
 import { autoSave } from './savings.js';
 import { maybeAutoPayout } from './payouts.js';
 import { cleanHttpUrl } from './security.js';
+import { assertCanCollect } from './verification.js';
 
 export const MIN_XOF = 100;
 export const MAX_XOF = 5_000_000;
@@ -115,6 +116,8 @@ export function validateAmountXof(amount) {
 
 // input : { amount (FCFA) | amount_sats, reference, description, return_url, webhook_url, customer_email, payer_note, metadata, source }
 export async function createCheckout(merchant, input) {
+  // E-mail confirmé, et entreprise vérifiée quand l'argent est réel (lève une erreur 403)
+  assertCanCollect(merchant);
   const reference = String(input.reference || newId('ord')).slice(0, 80);
 
   const existing = await one(`${SELECT} WHERE c.merchant_id = $1 AND c.reference = $2`, [merchant.id, reference]);
