@@ -102,6 +102,7 @@ if not exist "mobile\node_modules" (
 )
 call :free_port 8081
 pushd mobile
+set "EXPO_NO_TELEMETRY=1"
 call npx expo start --lan
 popd
 rem Expo ferme : on arrete aussi la passerelle et la boutique lancees en arriere-plan
