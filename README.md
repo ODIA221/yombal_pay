@@ -40,10 +40,11 @@ Client (n'importe où) ── Lightning ou USDT ──▶ YombalPay ──▶ So
 
 ```bash
 ./run.sh           # installe tout, crée la base, construit le front, lance passerelle :3000 + boutique :4000
+                   # + application mobile (QR à scanner avec Expo Go, même Wi-Fi)
+./run.sh --no-mobile  # même chose sans l'application mobile
 ./run.sh test      # 101 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
 ./run.sh dev       # API rechargée à chaque modification + Vite :5173 + boutique
 ./run.sh check     # diagnostic de la connexion Bitnob
-./run.sh mobile    # passerelle + application mobile à scanner avec Expo Go (même Wi-Fi)
 ./run.sh reconcile # rapprochement comptable : registre ↔ opérations, puis plateforme ↔ compte Bitnob
 ```
 
@@ -113,10 +114,10 @@ L'espace marchand existe aussi en application native, dans `mobile/` (Expo SDK 5
 
 1. Installez **Expo Go** sur le téléphone (App Store ou Play Store).
 2. Mettez le téléphone sur **le même Wi-Fi** que l'ordinateur.
-3. Lancez `./run.sh mobile` : la passerelle démarre, l'adresse IP de l'ordinateur est transmise à l'application, et un QR s'affiche.
+3. Lancez `./run.sh` (ou `run.bat` sous Windows) : la passerelle et la boutique démarrent, l'adresse IP de l'ordinateur est transmise à l'application et aux liens de paiement, un récapitulatif affiche les adresses et le compte de démo, puis le QR d'Expo s'affiche. Les journaux du serveur sont dans `.run-logs/`.
 4. Scannez le QR (appareil photo sur iPhone, Expo Go sur Android), puis connectez-vous avec le compte de démo.
 
-Si l'application indique « Serveur injoignable » : autorisez Node dans le pare-feu de macOS, ou corrigez l'adresse sur l'écran de connexion (`http://<IP de l'ordinateur>:3000`). Sous Windows : `npm install --prefix mobile`, puis `cd mobile` et `npx expo start --lan`, et saisissez l'adresse IPv4 de l'ordinateur (`ipconfig`) sur l'écran de connexion.
+Si l'application indique « Serveur injoignable » : autorisez Node dans le pare-feu de macOS, ou corrigez l'adresse sur l'écran de connexion (`http://<IP de l'ordinateur>:3000`). Sous Windows, `run.bat` fait la même chose (adresse IP détectée via PowerShell) ; autorisez Node dans le pare-feu Windows pour les réseaux privés.
 
 L'application se connecte avec un jeton de session (`Authorization: Bearer ymb_…`) gardé dans le coffre sécurisé du téléphone, au lieu du cookie du navigateur.
 

@@ -2,6 +2,8 @@
 rem YombalPay - lance tout le projet en une commande sous Windows (equivalent de run.sh).
 rem
 rem   run.bat          installe, construit le front, lance la passerelle (:3000) + la boutique (:4000)
+rem                    + l'application mobile Expo (QR a scanner avec Expo Go, meme Wi-Fi)
+rem   run.bat --no-mobile  meme chose sans l'application mobile
 rem   run.bat dev      mode developpement : API en --watch (:3000) + Vite (:5173) + boutique (:4000)
 rem   run.bat test     lance les tests de bout en bout (ports 3100/4100, base PostgreSQL locale yombal_pay_test)
 rem   run.bat all      lance les tests puis la demo
@@ -15,8 +17,13 @@ setlocal
 chcp 65001 >nul
 cd /d "%~dp0"
 
-set "MODE=%~1"
-if "%MODE%"=="" set "MODE=demo"
+set "MODE=demo"
+set "NO_MOBILE="
+for %%a in (%*) do (
+  if /i "%%~a"=="--no-mobile" (set "NO_MOBILE=1") else set "MODE=%%~a"
+)
+rem « run.bat mobile » : ancien nom, l'application mobile fait maintenant partie de la demo
+if /i "%MODE%"=="mobile" set "MODE=demo"
 for %%m in (demo rebuild dev test all check reconcile) do if /i "%MODE%"=="%%m" goto :mode_ok
 goto :usage
 :mode_ok
@@ -66,11 +73,35 @@ if /i "%MODE%"=="reconcile" (node scripts\reconcile.mjs & exit /b)
 
 :run_demo
 if not exist "web\dist\index.html" call :die "Le front n'a pas pu être construit." & exit /b 1
+call :configure_lan
 call :free_port 3000
 call :free_port 4000
+if not exist ".run-logs" mkdir ".run-logs"
+if defined NO_MOBILE (
+  call :banner
+  start "" /b node shop\server.js
+  node server\src\index.js
+  exit /b
+)
+rem Passerelle et boutique en arriere-plan, journaux dans .run-logs (l'ecran reste libre pour le QR d'Expo)
+start "" /b cmd /c "node server\src\index.js > .run-logs\server.log 2>&1"
+start "" /b cmd /c "node shop\server.js > .run-logs\shop.log 2>&1"
+for /l %%i in (1,1,40) do (
+  curl -s -o nul --max-time 1 http://localhost:3000/v1/health && goto :servers_up
+  timeout /t 1 /nobreak >nul
+)
+type ".run-logs\server.log"
+call :die "La passerelle n'a pas démarré (journal : .run-logs\server.log)." & exit /b 1
+:servers_up
+echo [OK] Passerelle et boutique démarrées (journaux : .run-logs\server.log, .run-logs\shop.log)
 call :banner
-start "" /b node shop\server.js
-node server\src\index.js
+if not exist "mobile\node_modules" (
+  echo [..] Installation des dépendances de mobile\...
+  call npm install --prefix mobile --no-audit --no-fund || call :die "Installation des dépendances de mobile impossible." || exit /b 1
+)
+call :free_port 8081
+cd mobile
+call npx expo start --lan
 exit /b
 
 :run_dev
@@ -118,15 +149,61 @@ exit /b 0
 
 :banner
 set "DEMO_EMAIL="
+set "DEMO_PASSWORD="
 for /f "tokens=1,* delims==" %%a in ('findstr /b /c:"DEMO_MERCHANT_EMAIL=" .env 2^>nul') do set "DEMO_EMAIL=%%b"
+for /f "tokens=1,* delims==" %%a in ('findstr /b /c:"DEMO_MERCHANT_PASSWORD=" .env 2^>nul') do set "DEMO_PASSWORD=%%b"
+if not defined LAN_IP set "LAN_IP=localhost"
 echo.
-echo [OK] YombalPay est lancé. Ctrl+C pour tout arrêter.
-echo    Boutique de démo  : http://localhost:4000
-echo    Espace marchand   : http://localhost:3000/app   (compte démo : %DEMO_EMAIL%)
-echo    Caisse            : http://localhost:3000/app/caisse
-echo    Page publique     : http://localhost:3000/@africancostume
-echo    Documentation     : http://localhost:3000/docs
+echo ----------------------------------------------------------------
+echo  YombalPay est lancé
 echo.
+echo  Sur cet ordinateur
+echo    Espace marchand : http://localhost:3000/app
+echo    Boutique        : http://localhost:4000
+echo    Documentation   : http://localhost:3000/docs
+echo.
+echo  Depuis le téléphone (même Wi-Fi)
+echo    Espace marchand : http://%LAN_IP%:3000/app
+echo    Page publique   : http://%LAN_IP%:3000/@africancostume
+echo    Boutique        : http://%LAN_IP%:4000
+echo.
+echo  Compte marchand de démo
+echo    E-mail          : %DEMO_EMAIL%
+echo    Mot de passe    : %DEMO_PASSWORD%
+echo.
+if defined NO_MOBILE (
+  echo  Ctrl+C arrête tout.
+) else (
+  echo  Application mobile : ouvrez Expo Go sur le même Wi-Fi et scannez le QR ci-dessous.
+  echo  « Serveur injoignable » ? Autorisez Node dans le pare-feu Windows ^(réseau privé^).
+  echo  Ctrl+C arrête Expo, la passerelle et la boutique.
+)
+echo ----------------------------------------------------------------
+echo.
+exit /b 0
+
+rem Adresse de l'ordinateur sur le reseau local (interface avec passerelle par defaut) : c'est par elle que le
+rem telephone joint la passerelle. Si .env pointe vers localhost, les liens (paiement, recu, boutique) utilisent cette IP.
+:configure_lan
+set "LAN_IP="
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up' } | Select-Object -First 1).IPv4Address.IPAddress" 2^>nul`) do set "LAN_IP=%%i"
+if not defined LAN_IP (
+  echo [!] Aucune adresse IP locale : le test sur téléphone ne fonctionnera pas.
+  set "LAN_IP=localhost"
+)
+set "ENV_PUBLIC_URL="
+set "ENV_SHOP_URL="
+for /f "tokens=1,* delims==" %%a in ('findstr /b /c:"PUBLIC_URL=" .env 2^>nul') do set "ENV_PUBLIC_URL=%%b"
+for /f "tokens=1,* delims==" %%a in ('findstr /b /c:"SHOP_URL=" .env 2^>nul') do set "ENV_SHOP_URL=%%b"
+set "PUBLIC_URL=http://%LAN_IP%:3000"
+set "SHOP_URL=http://%LAN_IP%:4000"
+if defined ENV_PUBLIC_URL echo %ENV_PUBLIC_URL% | findstr /i "localhost 127.0.0.1" >nul || set "PUBLIC_URL=%ENV_PUBLIC_URL%"
+if defined ENV_SHOP_URL echo %ENV_SHOP_URL% | findstr /i "localhost 127.0.0.1" >nul || set "SHOP_URL=%ENV_SHOP_URL%"
+(
+  echo # Ecrit par run.bat ^(adresse de la passerelle vue par le telephone^)
+  echo EXPO_PUBLIC_API_URL=http://%LAN_IP%:3000
+) > "mobile\.env.local"
+echo [OK] Adresse locale : %LAN_IP% ^(écrite dans mobile\.env.local^)
 exit /b 0
 
 :die
@@ -134,5 +211,5 @@ echo [ERREUR] %~1 1>&2
 exit /b 1
 
 :usage
-echo Usage : run.bat [demo ^| dev ^| test ^| all ^| check ^| reconcile ^| rebuild]
+echo Usage : run.bat [demo ^| dev ^| test ^| all ^| check ^| reconcile ^| rebuild] [--no-mobile]
 exit /b 1
