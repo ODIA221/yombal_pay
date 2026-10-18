@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import Home from './pages/Home.jsx';
 import Pay from './pages/Pay.jsx';
 import PublicPay from './pages/PublicPay.jsx';
 import Recu from './pages/Recu.jsx';
@@ -26,9 +25,9 @@ function SiteNav() {
   const { merchant } = useAuth();
   return (
     <nav className="nav">
-      <NavLink to="/" className="nav-logo">
+      <a href="/" className="nav-logo">
         <Logo />
-      </NavLink>
+      </a>
       <div className="nav-links">
         <NavLink to="/docs">Docs</NavLink>
         {merchant ? (
@@ -55,7 +54,7 @@ function Shell() {
     <>
       {!bare && <SiteNav />}
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<ToLanding />} />
         <Route path="/pay/:id" element={<Pay />} />
         <Route path="/recu/:id" element={<Recu />} />
         <Route path="/docs" element={<Docs />} />
@@ -84,7 +83,13 @@ function Shell() {
 function AtOrHome() {
   const { pathname } = useLocation();
   const m = pathname.match(/^\/@([a-z0-9._-]+)\/?$/i);
-  return m ? <PublicPay key={m[1]} usernameOverride={m[1]} /> : <Home />;
+  return m ? <PublicPay key={m[1]} usernameOverride={m[1]} /> : <ToLanding />;
+}
+
+// L'accueil est une page statique servie par la passerelle (accueil.html), hors de l'application React
+function ToLanding() {
+  useEffect(() => window.location.replace('/'), []);
+  return null;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

@@ -508,6 +508,10 @@ try {
   }
   const headers = (await fetch(`${API}/`)).headers;
   check(/frame-ancestors 'none'/.test(headers.get('content-security-policy') || ''), 'En-têtes de sécurité : CSP + anti-clickjacking');
+  const home = await (await fetch(`${API}/`)).text();
+  check(home.includes('/logo-dark.png') && home.includes('Ils encaissent avec YombalPay') && home.includes('src="/accueil.js"') && !/<script>/.test(home),
+    'Accueil : logo officiel, « Ils encaissent avec YombalPay », scripts servis par le site (CSP)');
+  check((await fetch(`${API}/boutique`, { redirect: 'manual' })).headers.get('location') === SHOP, '/boutique → boutique de démo');
 } catch (e) {
   console.error(e);
   console.error(serverLog.slice(-2000));

@@ -88,12 +88,16 @@ app.get('/l/:slug', async (req, res) => {
 app.get('/sdk/yombalpay.js', (_req, res) => res.type('application/javascript').sendFile(path.join(sdkDir, 'browser.js')));
 
 app.get('/dashboard', (_req, res) => res.redirect(301, '/app'));
+// Boutique de démo « African Costume Shop » (serveur à part, SHOP_URL)
+app.get('/boutique', (_req, res) => res.redirect(302, process.env.SHOP_URL || 'http://localhost:4000'));
 
 // Front React (site, tableau de bord, caisse, pages de paiement) servi par la même origine
 if (fs.existsSync(webDist)) {
   app.use(express.static(webDist, { index: false, maxAge: '1h' }));
   const spa = (_req, res) => res.sendFile(path.join(webDist, 'index.html'));
-  app.get(['/', '/pay/:id', '/recu/:id', '/login', '/signup', '/docs', '/app', '/app/*'], spa);
+  // Page d'accueil statique (carte 3D, parcours, tarifs) : web/public/accueil.html
+  app.get('/', (_req, res) => res.sendFile(path.join(webDist, 'accueil.html')));
+  app.get(['/pay/:id', '/recu/:id', '/login', '/signup', '/docs', '/app', '/app/*'], spa);
   app.get(/^\/@[a-z0-9._-]+\/?$/i, spa);
 } else {
   app.get('/', (_req, res) =>

@@ -8,9 +8,9 @@ function AuthShell({ title, subtitle, children }) {
   return (
     <div className="auth-shell">
       <div className="auth-card">
-        <Link to="/" className="auth-logo">
+        <a href="/" className="auth-logo">
           <Logo />
-        </Link>
+        </a>
         <h1>{title}</h1>
         <p className="muted">{subtitle}</p>
         {children}
