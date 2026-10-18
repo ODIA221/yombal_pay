@@ -571,19 +571,8 @@ code.ic { font: 500 12.5px var(--mono); background: var(--ink); border: 1px soli
 .feat p { color: var(--grey); font-size: 14.5px; }
 .feat-cta { margin-top: 4px; font-weight: 700; font-size: 14.5px; color: var(--green-text); text-decoration: none; }
 .feat-cta:hover { text-decoration: underline; }
-.soon-panel { margin-top: 18px; border: 1.5px dashed #C4D1C8; border-radius: 22px; padding: 20px 22px; display: grid; gap: 16px; background: transparent; }
-.soon-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.soon-head strong { font-size: 16px; }
-.soon-head > span:last-child { color: var(--grey); font-size: 14px; }
-.soon-pill { font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; background: var(--white); color: var(--grey); border: 1px solid var(--line); }
-.soon-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.soon-list li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; color: var(--grey); min-width: 0; }
-.soon-list svg { color: var(--grey-light); margin-top: 2px; }
-.soon-list b { display: block; color: var(--ink); font-size: 14.5px; font-weight: 600; }
-.soon-list span { font-size: 13.5px; }
-@media (max-width: 1080px) { .soon-list { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 900px) { .live-grid { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .live-grid, .soon-list { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .live-grid { grid-template-columns: 1fr; } }
 
 /* Parcours animé d'un paiement */
 .flow { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 28px; align-items: center; }
@@ -909,15 +898,6 @@ code.ic { font: 500 12.5px var(--mono); background: var(--ink); border: 1px soli
           <p>Paiements, total encaissé et graphique sur 7 jours, mis à jour sans recharger. Mode test et production séparés.</p>
           <a class="feat-cta" href="/login">Ouvrir mon tableau de bord <span aria-hidden="true">→</span></a>
         </article>
-      </div>
-
-      <div class="soon-panel">
-        <div class="soon-head"><span class="soon-pill">Disponible</span><strong>Aussi dans votre espace</strong><span>Retraits, liens de paiement et protection en USDT, prêts à l’emploi.</span></div>
-        <ul class="soon-list">
-          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7h-9a4 4 0 0 0 0 8h2"/><path d="M17 4l3 3-3 3"/><path d="M4 17h9a4 4 0 0 0 0-8h-2"/><path d="M7 20l-3-3 3-3"/></svg><div><b>Versement sur Wave et Orange Money</b><span>Vos encaissements convertis en FCFA et versés automatiquement.</span></div></li>
-          <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l16 8-16 8 3-8-3-8z"/><path d="M7 12h6"/></svg><div><b>Liens de paiement WhatsApp</b><span>Un lien à partager sur WhatsApp ou Instagram, sans tableau de bord.</span></div></li>
-                    <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9.5c0-1.4 1.3-2.5 3-2.5s3 1 3 2.3c0 2.9-6 1.9-6 5 0 1.3 1.3 2.2 3 2.2s3-1 3-2.5M12 5v2M12 17v2"/></svg><div><b>Conversion en USDT</b><span>Protégez vos encaissements des variations du bitcoin.</span></div></li>
-        </ul>
       </div>
     </div>
   </section>
