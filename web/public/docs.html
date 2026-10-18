@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Documentation · YombalPay</title>
+<meta name="description" content="Documentation de l'API YombalPay : encaisser en Bitcoin Lightning avec des prix en FCFA.">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Documentation : sommaire fixe à gauche, contenu lisible à droite, mêmes couleurs que la page d'accueil. */
+:root {
+  --white: #FFFFFF; --mist: #F3F7F4; --line: #E1E8E3;
+  --ink: #0A0F0C; --ink-2: #141B17; --ink-3: #1D2620; --line-dark: #27322B;
+  --grey: #56635B; --grey-light: #97A69D;
+  --green: #F7931A;        /* orange Bitcoin : couleur principale */
+  --green-bright: #F7931A;
+  --green-soft: #FEF1E0;
+  --green-text: #B45309;   /* orange lisible pour le texte sur fond clair */
+  --on-green: #1A1206;     /* texte sur l'orange */
+  --amber-soft: #FFF4D6; --amber: #7A5300;
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; scroll-padding-top: 100px; }
+body { margin: 0; background: var(--white); color: var(--ink); font: 16px/1.65 var(--body); }
+a { color: var(--green-text); }
+:focus-visible { outline: 2px solid var(--green-bright); outline-offset: 2px; }
+.layout { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; padding: 32px var(--gutter-r) 80px var(--gutter-l); }
+aside { position: sticky; top: 100px; align-self: start; display: grid; gap: 4px; font-size: 14.5px; }
+aside .grp { font: 600 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--grey); margin: 14px 0 4px; }
+aside .grp:first-child { margin-top: 0; }
+aside a { color: var(--ink); text-decoration: none; padding: 6px 10px; border-radius: 8px; }
+aside a:hover { background: var(--mist); }
+aside a.on { background: var(--green-soft); color: var(--green-text); font-weight: 600; }
+main { min-width: 0; max-width: 820px; }
+section { padding-bottom: 40px; margin-bottom: 40px; border-bottom: 1px solid var(--line); }
+section:last-child { border-bottom: 0; }
+h1 { font: 800 clamp(28px, 4vw, 40px)/1.15 var(--display); margin: 0 0 12px; }
+h2 { font: 700 clamp(22px, 3vw, 28px)/1.2 var(--display); margin: 0 0 14px; }
+h3 { font: 700 18px/1.3 var(--body); margin: 26px 0 10px; }
+p { margin: 0 0 14px; }
+.lead { font-size: 18px; color: var(--grey); }
+code { font: 500 .88em var(--mono); background: var(--mist); padding: 1px 6px; border-radius: 6px; }
+pre { margin: 0 0 16px; background: var(--ink); color: #DCE5DF; border-radius: 14px; padding: 16px 18px; overflow-x: auto; font: 500 13.5px/1.65 var(--mono); }
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+pre .c { color: #6F7E75; } pre .s { color: var(--green-bright); }
+.method { display: inline-block; font: 700 12px var(--mono); padding: 3px 8px; border-radius: 6px; margin-right: 8px; vertical-align: 2px; }
+.post { background: var(--green); color: var(--on-green); } .get { background: var(--ink); color: var(--white); }
+.endpoint { font: 600 15px var(--mono); }
+.auth { font: 600 11px var(--mono); color: var(--grey); margin-left: 6px; }
+.table { overflow-x: auto; margin: 0 0 16px; border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 520px; }
+th { text-align: left; background: var(--mist); font: 600 11.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--grey); padding: 10px 14px; }
+td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+td:first-child { white-space: nowrap; }
+.req { font: 600 11px var(--mono); color: var(--green-text); }
+.opt { font: 600 11px var(--mono); color: var(--grey); }
+.note { background: var(--green-soft); border-radius: 12px; padding: 12px 16px; margin: 0 0 16px; font-size: 15px; }
+.warn { background: var(--amber-soft); color: var(--amber); border-radius: 12px; padding: 12px 16px; margin: 0 0 16px; font-size: 15px; }
+.steps { list-style: none; margin: 0 0 16px; padding: 0; counter-reset: s; display: grid; gap: 14px; }
+.steps li { display: grid; grid-template-columns: 32px 1fr; gap: 14px; }
+.steps li::before { counter-increment: s; content: counter(s); width: 30px; height: 30px; border-radius: 50%; background: var(--green); color: var(--on-green); display: grid; place-items: center; font: 700 14px var(--mono); }
+.steps li > div { min-width: 0; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: -6px; position: relative; z-index: 1; }
+.tabs button { border: 0; background: var(--mist); color: var(--grey); font: 600 13px var(--mono); padding: 8px 12px; border-radius: 10px 10px 0 0; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--white); }
+.lang-help { font-size: 14.5px; color: var(--grey); }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 0; } aside { display: none; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+<link rel="stylesheet" href="/site-nav.css">
+</head>
+<body>
+<header class="nav-shell" id="navShell"></header>
+<script src="/site-nav.js"></script>
+
+<div class="layout">
+  <aside aria-label="Sommaire">
+    <span class="grp">Commencer</span>
+    <a href="#introduction">Introduction</a>
+    <a href="#demarrage">Démarrage rapide</a>
+    <a href="#sans-code">Encaisser sans site web</a>
+    <span class="grp">API</span>
+    <a href="#authentification">Authentification</a>
+    <a href="#api">Référence API</a>
+    <a href="#objet">L'objet paiement</a>
+    <a href="#erreurs">Erreurs</a>
+    <span class="grp">Aller plus loin</span>
+    <a href="#webhooks">Webhooks</a>
+    <a href="#mode-test">Mode test</a>
+    <a href="#sdk">SDK et bouton</a>
+    <a href="#exemples">Exemples par langage</a>
+  </aside>
+
+  <main>
+    <section id="introduction">
+      <h1>Documentation YombalPay</h1>
+      <p class="lead">YombalPay permet à un site ou à une boutique d'encaisser en Bitcoin (réseau Lightning) avec des prix en FCFA. Vous envoyez un montant en FCFA, nous créons la facture Lightning, votre client paie depuis n'importe quel pays, et nous vous prévenons dès que c'est payé.</p>
+      <p>Il y a deux façons d'utiliser YombalPay :</p>
+      <ul>
+        <li><b>Sans code</b> : depuis votre espace marchand, vous encaissez à la caisse, par un lien de paiement ou par votre page publique. Voir <a href="#sans-code">Encaisser sans site web</a>.</li>
+        <li><b>Avec l'API</b> : votre site web crée les paiements automatiquement. C'est le reste de cette page.</li>
+      </ul>
+    </section>
+
+    <section id="demarrage">
+      <h2>Démarrage rapide</h2>
+      <p>Votre premier paiement en cinq minutes.</p>
+      <ol class="steps">
+        <li><div><b>Créez un compte</b> sur <a href="/signup">la page d'inscription</a>. Votre clé API secrète (<code>sk_…</code>) s'affiche une seule fois : copiez-la. Vous pourrez en créer d'autres dans <a href="/app/developpeurs">Développeurs</a>.</div></li>
+        <li><div><b>Confirmez votre adresse e-mail</b> avec le lien reçu. Tant qu'elle n'est pas confirmée, la création de paiement est refusée (<code>email_unverified</code>). Un compte créé avec Google est déjà confirmé.</div></li>
+        <li><div><b>Créez un paiement</b> depuis votre serveur, en remplaçant <code>VOTRE_CLE</code> :
+<pre><code>curl <span class="base">https://votre-passerelle</span>/v1/checkouts \
+  -H "Authorization: Bearer <span class="s">VOTRE_CLE</span>" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 5000, "currency": "XOF", "reference": "commande-1042"}'</code></pre>
+        La réponse contient <code>pay_url</code> : c'est la page de paiement.</div></li>
+        <li><div><b>Envoyez votre client sur <code>pay_url</code></b>. Il voit le montant en FCFA et en sats, le QR Lightning, et peut aussi payer en USDT.</div></li>
+        <li><div><b>Soyez prévenu</b> : ajoutez <code>webhook_url</code> à la requête (ou réglez une adresse par défaut dans Développeurs), et YombalPay l'appellera dès que le paiement est confirmé. Voir <a href="#webhooks">Webhooks</a>.</div></li>
+      </ol>
+    </section>
+
+    <section id="sans-code">
+      <h2>Encaisser sans site web</h2>
+      <p>Pour une boutique physique ou une vente sur WhatsApp, pas besoin de développeur :</p>
+      <ol class="steps">
+        <li><div>Ouvrez la <a href="/app/caisse">caisse</a> de votre espace marchand, tapez le montant en FCFA, puis <b>Encaisser</b>.</div></li>
+        <li><div>Montrez le QR code à votre client. L'écran passe au vert dès que le paiement est confirmé.</div></li>
+        <li><div>Pour vendre à distance, créez un <a href="/app/liens">lien de paiement</a> à montant fixe à partager sur WhatsApp, ou envoyez votre page publique <code>/@identifiant</code> et votre adresse Lightning <code>identifiant@domaine</code>.</div></li>
+      </ol>
+    </section>
+
+    <section id="authentification">
+      <h2>Authentification</h2>
+      <p>Chaque requête porte votre clé secrète, dans l'un de ces en-têtes :</p>
+<pre><code>Authorization: Bearer sk_…        <span class="c"># recommandé</span>
+X-API-Key: sk_…</code></pre>
+      <p>La <b>clé publique</b> <code>pk_…</code> (affichée dans Développeurs) peut seulement créer des paiements : elle sert au bouton navigateur. Elle ne lit pas vos paiements et ne déclenche jamais de retrait.</p>
+      <p class="warn">La clé secrète reste sur votre serveur. Ne la mettez jamais dans le code de votre site visible par les visiteurs, ni sur GitHub. Si elle a fuité, révoquez-la dans Développeurs : elle cesse aussitôt de fonctionner.</p>
+    </section>
+
+    <section id="api">
+      <h2>Référence API</h2>
+      <p>Adresse de base : <code><span class="base">https://votre-passerelle</span>/v1</code>. Les corps de requête et de réponse sont en JSON.</p>
+
+      <h3><span class="method post">POST</span><span class="endpoint">/v1/checkouts</span><span class="auth">sk_ ou pk_</span></h3>
+      <p>Crée un paiement. Le montant en sats est calculé au cours du moment et reste garanti 15 minutes. Réponse <code>201</code>, ou <code>200</code> si la référence existait déjà.</p>
+      <div class="table"><table>
+        <thead><tr><th>Champ</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>amount</code> <span class="req">obligatoire</span></td><td>entier</td><td>Montant en FCFA, de 100 à 5 000 000.</td></tr>
+          <tr><td><code>currency</code> <span class="opt">facultatif</span></td><td>texte</td><td><code>XOF</code> (franc CFA), seule devise acceptée.</td></tr>
+          <tr><td><code>reference</code> <span class="opt">facultatif</span></td><td>texte</td><td>Votre numéro de commande. Renvoyer la même référence redonne le même paiement : pas de doublon si votre site réessaie.</td></tr>
+          <tr><td><code>description</code> <span class="opt">facultatif</span></td><td>texte</td><td>Affichée au client sur la page de paiement (140 caractères).</td></tr>
+          <tr><td><code>return_url</code> <span class="opt">facultatif</span></td><td>URL</td><td>Où renvoyer le client après le paiement (http ou https).</td></tr>
+          <tr><td><code>webhook_url</code> <span class="opt">facultatif</span></td><td>URL</td><td>Où envoyer <code>checkout.paid</code> pour ce paiement. Clé secrète uniquement ; en production, https vers une adresse publique.</td></tr>
+          <tr><td><code>customer_email</code> <span class="opt">facultatif</span></td><td>texte</td><td>E-mail du client, pour vos rapprochements.</td></tr>
+          <tr><td><code>metadata</code> <span class="opt">facultatif</span></td><td>objet</td><td>Vos données libres, renvoyées telles quelles.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3><span class="method get">GET</span><span class="endpoint">/v1/checkouts/:id</span></h3>
+      <p>Renvoie un paiement. Avec votre clé secrète, la réponse ajoute les détails privés (commission, preuve de paiement). Un paiement d'un autre compte répond <code>404</code>.</p>
+
+      <h3><span class="method get">GET</span><span class="endpoint">/v1/checkouts</span><span class="auth">sk_</span></h3>
+      <p>Renvoie vos paiements du plus récent au plus ancien dans <code>data</code>. Paramètres : <code>status</code> (<code>pending</code>, <code>paid</code>, <code>expired</code>), <code>limit</code> (100 par défaut, 500 au plus).</p>
+
+      <h3><span class="method post">POST</span><span class="endpoint">/v1/payment-links</span><span class="auth">sk_</span></h3>
+      <p>Crée un lien de paiement à montant fixe (<code>amount</code>, <code>description</code>). Chaque ouverture du lien crée un nouveau paiement.</p>
+
+      <h3><span class="method get">GET</span><span class="endpoint">/v1/rates</span></h3>
+      <p>Cours du moment : <code>xof_per_btc</code>, <code>sats_per_1000_xof</code>. Sans authentification.</p>
+
+      <h3><span class="method post">POST</span><span class="endpoint">/v1/checkouts/:id/simulate-payment</span></h3>
+      <p>Mode démo, ou sandbox Bitnob avec <code>YOMBAL_TEST_HELPERS=true</code> : marque le paiement comme payé, comme si le client avait payé. Voir <a href="#mode-test">Mode test</a>.</p>
+    </section>
+
+    <section id="objet">
+      <h2>L'objet paiement</h2>
+<pre><code>{
+  "id": "chk_6ASjVMv4pNh",
+  "object": "checkout",
+  "status": "pending",
+  "reference": "commande-1042",
+  "description": "Chemise dashiki",
+  "amount": 12500,
+  "currency": "XOF",
+  "amount_sats": 25550,
+  "rate": { "xof_per_btc": 48925178, "source": "Bitnob (BTC/XOF)", "fixed": false },
+  "payment_request": "lntb255500n1p4df0r7…",
+  "pay_url": "<span class="base">https://votre-passerelle</span>/pay/chk_6ASjVMv4pNh",
+  "return_url": "https://maboutique.sn/commandes/1042",
+  "expires_at": "2026-10-18T12:48:02.000Z",
+  "created_at": "2026-10-18T12:33:02.962Z",
+  "paid_at": null,
+  "pay_asset": "BTC",
+  "proof": null,
+  "usdt": { "available": true, "amount": "20.84", "chains": ["polygon", "solana"] },
+  "metadata": { "product": "dashiki" }
+}</code></pre>
+      <div class="table"><table>
+        <thead><tr><th>Statut</th><th>Signification</th></tr></thead>
+        <tbody>
+          <tr><td><code>pending</code></td><td>En attente : le client n'a pas encore payé.</td></tr>
+          <tr><td><code>paid</code></td><td>Payé et confirmé auprès de Bitnob. Vous pouvez livrer. <code>proof</code> contient l'empreinte de la facture Lightning, ou les transactions USDT.</td></tr>
+          <tr><td><code>expired</code></td><td>La facture a dépassé ses 15 minutes sans paiement. Rien n'a été débité.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="erreurs">
+      <h2>Erreurs</h2>
+      <p>En cas d'erreur, la réponse contient un code et un message en français :</p>
+<pre><code>{ "error": { "code": "invalid_amount", "message": "Le montant doit être compris entre 100 et 5 000 000 FCFA." } }</code></pre>
+      <div class="table"><table>
+        <thead><tr><th>Code HTTP</th><th>Code</th><th>Quand</th></tr></thead>
+        <tbody>
+          <tr><td>401</td><td><code>unauthorized</code></td><td>Clé absente, invalide ou révoquée.</td></tr>
+          <tr><td>403</td><td><code>email_unverified</code></td><td>L'adresse e-mail du compte n'est pas encore confirmée.</td></tr>
+          <tr><td>403</td><td><code>merchant_unverified</code></td><td>Argent réel : l'entreprise doit d'abord être vérifiée (Activation).</td></tr>
+          <tr><td>403</td><td><code>forbidden</code></td><td>Action non permise avec cette clé (par exemple, lecture avec une clé <code>pk_</code>).</td></tr>
+          <tr><td>404</td><td><code>not_found</code></td><td>Paiement introuvable, ou il appartient à un autre compte.</td></tr>
+          <tr><td>422</td><td><code>invalid_amount</code>, <code>invalid_currency</code>, <code>invalid_request</code></td><td>Donnée manquante ou invalide.</td></tr>
+          <tr><td>429</td><td><code>rate_limited</code></td><td>Trop de requêtes : attendez le délai indiqué par <code>Retry-After</code>.</td></tr>
+          <tr><td>502</td><td><code>bitnob_error</code></td><td>Le réseau de paiement ne répond pas. Réessayez avec la même <code>reference</code>.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="webhooks">
+      <h2>Webhooks</h2>
+      <p>Un webhook est un message que YombalPay envoie à votre serveur quand un paiement est confirmé. Votre site n'a pas besoin de demander le statut en boucle : c'est nous qui vous prévenons.</p>
+      <p>Nous envoyons un <code>POST</code> au <code>webhook_url</code> du paiement, sinon à l'adresse par défaut réglée dans Développeurs :</p>
+<pre><code>{
+  "id": "evt_3c1e…",
+  "type": "checkout.paid",
+  "created_at": "2026-10-18T10:43:10Z",
+  "data": { "id": "chk_6ASjVMv4pNh", "status": "paid", "reference": "commande-1042", "amount": 12500, … }
+}</code></pre>
+      <h3>Vérifier que le message vient bien de YombalPay</h3>
+      <p>Chaque message porte l'en-tête <code>X-YombalPay-Signature: t=…,v1=…</code>. <code>v1</code> est le HMAC-SHA256 de <code>t + "." + corps</code> avec votre <b>secret de webhooks</b> (<code>whsec_…</code>, dans Développeurs). Refusez tout message dont la signature ne correspond pas, ou trop ancien.</p>
+<pre><code><span class="c">// Node.js avec Express</span>
+import crypto from "node:crypto";
+
+app.post("/hooks/yombalpay", express.raw({ type: "application/json" }), (req, res) => {
+  const { t, v1 } = Object.fromEntries(req.get("x-yombalpay-signature").split(",").map((p) => p.split("=")));
+  const attendu = crypto.createHmac("sha256", process.env.YOMBALPAY_WEBHOOK_SECRET)
+    .update(`${t}.${req.body}`).digest("hex");
+  if (attendu !== v1 || Date.now() / 1000 - Number(t) > 300) return res.status(400).end();
+
+  const event = JSON.parse(req.body);
+  if (event.type === "checkout.paid") {
+    <span class="c">// marquer la commande event.data.reference comme payée</span>
+  }
+  res.json({ received: true });
+});</code></pre>
+      <p>Répondez avec un code 2xx en moins de 10 secondes. Sinon, nous réessayons après 2 s, 5 s, 15 s, 30 s et 60 s. Chaque envoi est visible dans Développeurs, avec un bouton pour le renvoyer. Pour une sécurité maximale, relisez le paiement avec <code>GET /v1/checkouts/:id</code> avant de livrer.</p>
+    </section>
+
+    <section id="mode-test">
+      <h2>Mode test</h2>
+      <p>Deux façons de tester sans dépenser de vrais bitcoins :</p>
+      <ul>
+        <li><b>Mode démo</b> (passerelle sans clés Bitnob, ou <code>DEMO_MODE=true</code>) : les factures sont simulées. Sur la page de paiement, cliquez sur <b>Simuler le paiement</b>, ou appelez <code>POST /v1/checkouts/:id/simulate-payment</code>.</li>
+        <li><b>Bitnob sandbox</b> : les factures sont de vraies factures du réseau de test (elles commencent par <code>lntb</code>). Payez-les avec un portefeuille Lightning testnet. Le portefeuille sandbox de Bitnob ne sait pas payer de facture Lightning : pour simuler, mettez <code>YOMBAL_TEST_HELPERS=true</code> dans le <code>.env</code> de la passerelle, puis cliquez sur <b>Simuler le paiement (sandbox)</b> sur la page de paiement, ou appelez <code>POST /v1/checkouts/:id/simulate-payment</code>.</li>
+      </ul>
+      <p>Le paiement passe à <code>paid</code> et votre webhook est envoyé, exactement comme en vrai.</p>
+      <p class="warn">La simulation est refusée dès que Bitnob indique une clé de production, et pour toute facture réelle (<code>lnbc…</code>) : elle ne peut jamais créditer de l'argent qui n'a pas été payé.</p>
+    </section>
+
+    <section id="sdk">
+      <h2>SDK et bouton</h2>
+      <h3>SDK Node.js</h3>
+<pre><code>import YombalPay from "yombalpay";
+
+const yp = new YombalPay({ apiKey: process.env.YOMBALPAY_SECRET_KEY, baseUrl: "<span class="base">https://votre-passerelle</span>" });
+const paiement = await yp.createCheckout({ amount: 5000, reference: "commande-1042", returnUrl: "https://maboutique.sn/merci" });
+res.redirect(paiement.pay_url);
+
+<span class="c">// Dans votre route webhook (corps brut) :</span>
+const event = YombalPay.verifyWebhook(req.body, req.get("x-yombalpay-signature"), process.env.YOMBALPAY_WEBHOOK_SECRET);</code></pre>
+      <h3>Bouton « Payer en Bitcoin », sans code</h3>
+<pre><code>&lt;script src="<span class="base">https://votre-passerelle</span>/sdk/yombalpay.js"
+        data-key="pk_…" data-amount="5000" data-reference="CMD-42"&gt;&lt;/script&gt;</code></pre>
+      <p>Le bouton utilise votre clé publique <code>pk_…</code> : il peut être placé sur n'importe quelle page de votre site.</p>
+    </section>
+
+    <section id="exemples">
+      <h2>Exemples par langage</h2>
+      <p class="lang-help">Votre site est écrit dans un langage de programmation. Choisissez le vôtre : c'est <b>la même requête</b> (« crée un paiement de 5 000 FCFA ») écrite de quatre façons. <b>cURL</b> se lance dans un terminal, pratique pour tester. <b>Node.js</b> (JavaScript), <b>Python</b> et <b>PHP</b> sont les langages les plus courants pour les sites web : WordPress, par exemple, est en PHP.</p>
+      <div class="tabs" role="tablist" aria-label="Langage">
+        <button role="tab" aria-selected="true" data-tab="curl" id="t-curl">cURL</button>
+        <button role="tab" aria-selected="false" data-tab="node" id="t-node">Node.js</button>
+        <button role="tab" aria-selected="false" data-tab="python" id="t-python">Python</button>
+        <button role="tab" aria-selected="false" data-tab="php" id="t-php">PHP</button>
+      </div>
+<pre id="ex-curl"><code>curl <span class="base">https://votre-passerelle</span>/v1/checkouts \
+  -H "Authorization: Bearer VOTRE_CLE" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 5000, "currency": "XOF", "reference": "commande-1042"}'</code></pre>
+<pre id="ex-node" hidden><code>const res = await fetch("<span class="base">https://votre-passerelle</span>/v1/checkouts", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.YOMBALPAY_SECRET_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ amount: 5000, currency: "XOF", reference: "commande-1042" }),
+});
+const paiement = await res.json();
+<span class="c">// rediriger le client vers paiement.pay_url</span></code></pre>
+<pre id="ex-python" hidden><code>import os, requests
+
+paiement = requests.post(
+    "<span class="base">https://votre-passerelle</span>/v1/checkouts",
+    headers={"Authorization": f"Bearer {os.environ['YOMBALPAY_SECRET_KEY']}"},
+    json={"amount": 5000, "currency": "XOF", "reference": "commande-1042"},
+).json()
+
+<span class="c"># rediriger le client vers paiement["pay_url"]</span></code></pre>
+<pre id="ex-php" hidden><code>$ch = curl_init('<span class="base">https://votre-passerelle</span>/v1/checkouts');
+curl_setopt_array($ch, [
+  CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . getenv('YOMBALPAY_SECRET_KEY'), 'Content-Type: application/json'],
+  CURLOPT_POSTFIELDS     => json_encode(['amount' => 5000, 'currency' => 'XOF', 'reference' => 'commande-1042']),
+  CURLOPT_RETURNTRANSFER => true,
+]);
+$paiement = json_decode(curl_exec($ch), true);
+header('Location: ' . $paiement['pay_url']);   <span class="c">// rediriger le client</span></code></pre>
+    </section>
+  </main>
+</div>
+
+<script src="/docs.js"></script>
+</body>
+</html>

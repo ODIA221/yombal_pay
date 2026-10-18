@@ -1,0 +1,63 @@
+# Déploiement Render (Blueprint) : passerelle YombalPay + boutique de démo.
+# Render → New → Blueprint → ce dépôt. Les valeurs « sync: false » se saisissent dans l'interface Render.
+# Si les noms yombalpay / yombalpay-boutique sont pris, adaptez les URL ci-dessous.
+services:
+  - type: web
+    name: yombalpay
+    runtime: node
+    region: frankfurt
+    plan: starter # le plan gratuit s'endort après 15 min : à éviter le jour de la démo
+    buildCommand: npm ci --prefix server && npm ci --prefix web && npm run build --prefix web
+    startCommand: node server/src/index.js
+    healthCheckPath: /v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: '1'
+      - key: PUBLIC_URL
+        value: https://yombalpay.onrender.com
+      - key: DATABASE_URL # Supabase → Connection string → Session pooler
+        sync: false
+      - key: BITNOB_CLIENT_ID
+        sync: false
+      - key: BITNOB_CLIENT_SECRET
+        sync: false
+      - key: BITNOB_WEBHOOK_SECRET
+        sync: false
+      - key: USDT_CHAINS # réseaux stablecoin proposés (vérifiés par ./run.sh check)
+        value: polygon,solana
+      - key: PAYOUT_MODE # « simulated » si le corridor SN n'est pas ouvert
+        value: auto
+      - key: DEMO_MERCHANT_EMAIL
+        sync: false
+      - key: DEMO_MERCHANT_PASSWORD
+        sync: false
+      # Clés du marchand de démo : générées par Render (les valeurs par défaut du dépôt sont publiques)
+      - key: DEMO_MERCHANT_KEY
+        generateValue: true
+      - key: DEMO_MERCHANT_WEBHOOK_SECRET
+        generateValue: true
+      - key: DEMO_MERCHANT_WEBHOOK_URL
+        value: https://yombalpay-boutique.onrender.com/webhooks/yombalpay
+
+  - type: web
+    name: yombalpay-boutique
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: npm ci --prefix shop
+    startCommand: node shop/server.js
+    envVars:
+      - key: SHOP_PORT
+        value: '10000'
+      - key: PORT
+        value: '10000'
+      - key: SHOP_URL
+        value: https://yombalpay-boutique.onrender.com
+      - key: YOMBALPAY_URL
+        value: https://yombalpay.onrender.com
+      - key: YOMBALPAY_SECRET_KEY
+        fromService: { type: web, name: yombalpay, envVarKey: DEMO_MERCHANT_KEY }
+      - key: YOMBALPAY_WEBHOOK_SECRET
+        fromService: { type: web, name: yombalpay, envVarKey: DEMO_MERCHANT_WEBHOOK_SECRET }

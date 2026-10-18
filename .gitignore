@@ -1,0 +1,10 @@
+node_modules/
+.env
+server/data/
+shop/orders.json
+web/dist/
+*.log
+.DS_Store
+*.crt
+*.pem
+.run-logs/
