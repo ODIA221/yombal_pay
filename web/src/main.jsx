@@ -1,10 +1,9 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Pay from './pages/Pay.jsx';
 import PublicPay from './pages/PublicPay.jsx';
 import Recu from './pages/Recu.jsx';
-import Docs from './pages/Docs.jsx';
 import { Login, Signup } from './pages/Auth.jsx';
 import AppLayout, { MoreMenu } from './components/AppLayout.jsx';
 import Overview from './pages/app/Overview.jsx';
@@ -17,47 +16,18 @@ import Developers from './pages/app/Developers.jsx';
 import Settings from './pages/app/Settings.jsx';
 import Activation from './pages/app/Activation.jsx';
 import Admin from './pages/app/Admin.jsx';
-import { AuthProvider, useAuth } from './lib/auth.jsx';
-import { Logo, ToastProvider } from './components/ui.jsx';
+import { AuthProvider } from './lib/auth.jsx';
+import { ToastProvider } from './components/ui.jsx';
 import './styles.css';
 
-function SiteNav() {
-  const { merchant } = useAuth();
-  return (
-    <nav className="nav">
-      <a href="/" className="nav-logo">
-        <Logo />
-      </a>
-      <div className="nav-links">
-        <NavLink to="/docs">Docs</NavLink>
-        {merchant ? (
-          <NavLink to="/app" className="nav-cta">
-            Mon espace
-          </NavLink>
-        ) : (
-          <>
-            <NavLink to="/login">Connexion</NavLink>
-            <NavLink to="/signup" className="nav-cta">
-              Créer un compte
-            </NavLink>
-          </>
-        )}
-      </div>
-    </nav>
-  );
-}
-
+// L'accueil (/) et la documentation (/docs) sont des pages statiques servies par la passerelle
 function Shell() {
-  const { pathname } = useLocation();
-  const bare = pathname.startsWith('/pay/') || pathname.startsWith('/recu/') || pathname.startsWith('/@') || pathname.startsWith('/app') || pathname === '/login' || pathname === '/signup';
   return (
-    <>
-      {!bare && <SiteNav />}
-      <Routes>
+    <Routes>
         <Route path="/" element={<ToLanding />} />
+        <Route path="/docs" element={<ToLanding to="/docs" />} />
         <Route path="/pay/:id" element={<Pay />} />
         <Route path="/recu/:id" element={<Recu />} />
-        <Route path="/docs" element={<Docs />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/app" element={<AppLayout />}>
@@ -74,8 +44,7 @@ function Shell() {
           <Route path="plus" element={<MoreMenu />} />
         </Route>
         <Route path="*" element={<AtOrHome />} />
-      </Routes>
-    </>
+    </Routes>
   );
 }
 
@@ -86,9 +55,10 @@ function AtOrHome() {
   return m ? <PublicPay key={m[1]} usernameOverride={m[1]} /> : <ToLanding />;
 }
 
-// L'accueil est une page statique servie par la passerelle (accueil.html), hors de l'application React
-function ToLanding() {
-  useEffect(() => window.location.replace('/'), []);
+// Page statique servie par la passerelle (accueil.html, docs.html), hors de l'application React :
+// on la recharge depuis le serveur
+function ToLanding({ to = '/' }) {
+  useEffect(() => window.location.replace(to), [to]);
   return null;
 }
 

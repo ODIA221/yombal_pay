@@ -95,9 +95,10 @@ app.get('/boutique', (_req, res) => res.redirect(302, process.env.SHOP_URL || 'h
 if (fs.existsSync(webDist)) {
   app.use(express.static(webDist, { index: false, maxAge: '1h' }));
   const spa = (_req, res) => res.sendFile(path.join(webDist, 'index.html'));
-  // Page d'accueil statique (carte 3D, parcours, tarifs) : web/public/accueil.html
+  // Pages statiques : accueil (carte 3D, parcours, tarifs) et documentation, dans web/public/
   app.get('/', (_req, res) => res.sendFile(path.join(webDist, 'accueil.html')));
-  app.get(['/pay/:id', '/recu/:id', '/login', '/signup', '/docs', '/app', '/app/*'], spa);
+  app.get('/docs', (_req, res) => res.sendFile(path.join(webDist, 'docs.html')));
+  app.get(['/pay/:id', '/recu/:id', '/login', '/signup', '/app', '/app/*'], spa);
   app.get(/^\/@[a-z0-9._-]+\/?$/i, spa);
 } else {
   app.get('/', (_req, res) =>

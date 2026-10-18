@@ -512,6 +512,9 @@ try {
   check(home.includes('/logo-dark.png') && home.includes('Ils encaissent avec YombalPay') && home.includes('src="/accueil.js"') && !/<script>/.test(home),
     'Accueil : logo officiel, « Ils encaissent avec YombalPay », scripts servis par le site (CSP)');
   check((await fetch(`${API}/boutique`, { redirect: 'manual' })).headers.get('location') === SHOP, '/boutique → boutique de démo');
+  const docs = await (await fetch(`${API}/docs`)).text();
+  check(docs.includes('X-YombalPay-Signature') && docs.includes('/v1/checkouts/:id/simulate-payment') && docs.includes('src="/docs.js"') && !/<script>/.test(docs),
+    'Documentation : API de la passerelle (signature, routes), scripts servis par le site');
 } catch (e) {
   console.error(e);
   console.error(serverLog.slice(-2000));
