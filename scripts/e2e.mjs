@@ -216,6 +216,10 @@ try {
 
   const stolen = await fetch(`${API}/v1/checkouts/${id}`, { headers: { Authorization: `Bearer ${suj.secret_key}` } });
   check(stolen.status === 404, "Un marchand ne voit pas les paiements d'un autre (isolation)");
+  const asBuyer = await me(`/v1/checkouts/${id}`);
+  const asBuyerj = await json(asBuyer);
+  check(asBuyer.status === 200 && asBuyerj.pay_url && asBuyerj.fee_sats === undefined && asBuyerj.payment_hash === undefined,
+    "Marchand connecté sur la page de paiement d'un autre : vue publique, sans détails privés");
 
   check((await me('/v1/conversions', { method: 'POST', body: { sats: 5000 }, csrf: false })).status === 403, 'Requête sans en-tête anti-CSRF refusée');
 

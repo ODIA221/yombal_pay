@@ -118,8 +118,11 @@ api.get('/checkouts', authenticate(['session', 'secret_key', 'staff']), wrap(asy
 
 api.get('/checkouts/:id', optionalAuth, wrap(async (req, res) => {
   const c = await getCheckout(req.params.id);
-  if (!c || (req.merchant && c.merchant_id !== req.merchant.id)) return fail(res, 404, 'not_found', 'Paiement introuvable.');
-  res.json(req.merchant ? privateCheckout(c) : publicCheckout(c));
+  const own = Boolean(req.merchant && c?.merchant_id === req.merchant.id);
+  // Clé API d'un autre marchand : introuvable (isolation). Un marchand connecté dans son navigateur qui ouvre
+  // la page de paiement d'un autre (pour payer, ou tester la boutique de démo) reçoit la vue publique.
+  if (!c || (req.authVia === 'secret_key' && !own)) return fail(res, 404, 'not_found', 'Paiement introuvable.');
+  res.json(own ? privateCheckout(c) : publicCheckout(c));
 }));
 
 // Flux temps réel du statut (page de paiement)

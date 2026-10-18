@@ -104,7 +104,10 @@ export const authenticate = (allow = ['session', 'secret_key']) => async (req, r
 export const optionalAuth = async (req, _res, next) => {
   try {
     const r = await resolve(req);
-    if (r?.merchant && (r.via === 'session' || r.via === 'secret_key')) req.merchant = r.merchant;
+    if (r?.merchant && (r.via === 'session' || r.via === 'secret_key')) {
+      req.merchant = r.merchant;
+      req.authVia = r.via;
+    }
   } catch {}
   next();
 };
