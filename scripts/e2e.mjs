@@ -306,18 +306,39 @@ try {
   // ── Argent réel : réservé aux entreprises vérifiées ───────────────────────
   // Autres passerelles sur la même base, hors mode démo ; l'environnement vient du faux GET /api/whoami
   // (le préfixe « prd: » existe aussi sur les secrets sandbox : il ne doit rien décider)
-  const realGateway = async (port, environment) => {
+  const realGateway = async (port, environment, extra = { YOMBAL_TEST_HELPERS: 'true' }) => {
     bitnobEnv = environment;
     const p = spawn('node', ['server/src/index.js'], {
-      env: { ...env, PORT: String(port), PUBLIC_URL: `http://localhost:${port}`, DEMO_MODE: 'false', BITNOB_CLIENT_ID: 'test', BITNOB_CLIENT_SECRET: 'prd:test', BITNOB_BASE_URL: 'http://localhost:4199', SEED_DEMO: 'false', PAYOUT_MODE: 'bitnob' },
+      env: { ...env, PORT: String(port), PUBLIC_URL: `http://localhost:${port}`, DEMO_MODE: 'false', BITNOB_CLIENT_ID: 'test', BITNOB_CLIENT_SECRET: 'prd:test', BITNOB_BASE_URL: 'http://localhost:4199', SEED_DEMO: 'false', PAYOUT_MODE: 'bitnob', ...extra },
     });
     procs.push(p);
     for (let i = 0; i < 40 && !(await fetch(`http://localhost:${port}/v1/health`).then((r) => r.ok, () => false)); i++) await sleep(250);
     await sleep(300); // le temps de lire whoami
     return p;
   };
+  // Paiements Bitnob en attente (créés en base : la fausse API ne fabrique pas de facture), pour la simulation
+  const sdb = new PgClient({ connectionString: DB });
+  await sdb.connect();
+  const base = (await sdb.query(`SELECT id FROM checkouts WHERE merchant_id = $1 LIMIT 1`, [suj.merchant.id])).rows[0].id;
+  const bitnobCheckout = async (id, invoice) => {
+    await sdb.query(
+      `INSERT INTO checkouts SELECT (jsonb_populate_record(c, jsonb_build_object('id', $2::text, 'merchant_id', $4::text, 'reference', $2::text, 'bitnob_reference', 'yp_' || $2,
+         'status', 'pending', 'demo', false, 'invoice_request', $3::text, 'invoice_id', 'inv_' || $2, 'payment_hash', null, 'paid_at', null,
+         'confirmed_by', null, 'expires_at', now() + interval '15 minutes'))).* FROM checkouts c WHERE c.id = $1`,
+      [base, id, invoice, gme.id], // marchand Awa : le solde de Fatou, vérifié plus loin, ne bouge pas
+    );
+    return id;
+  };
+  const sbxTest = await bitnobCheckout('chk_sbx_test', 'lntb1000n1sandboxtest');
+  const sbxReal = await bitnobCheckout('chk_sbx_real', 'lnbc1000n1realinvoice');
+  const sbxOff = await bitnobCheckout('chk_sbx_off', 'lntb1000n1sandboxoff');
+  const simulateOn = (port, id) => fetch(`http://localhost:${port}/v1/checkouts/${id}/simulate-payment`, { method: 'POST' });
+
   const LIVE = 'http://localhost:3101';
   const live = await realGateway(3101, 'production');
+  const prodSim = await simulateOn(3101, sbxTest);
+  check(prodSim.status === 403 && (await json(await fetch(`${LIVE}/v1/checkouts/${sbxTest}`))).can_simulate === false,
+    'Production (même avec YOMBAL_TEST_HELPERS) : simulation refusée, pas de bouton');
   const awaKey = { Authorization: `Bearer ${gsj.secret_key}`, 'Content-Type': 'application/json' };
   const liveUnverified = await fetch(`${LIVE}/v1/checkouts`, { method: 'POST', headers: awaKey, body: JSON.stringify({ amount: 5000 }) });
   check(liveUnverified.status === 403 && (await json(liveUnverified)).error.code === 'merchant_unverified', 'Argent réel : entreprise non vérifiée, encaissement refusé (403)');
@@ -334,7 +355,20 @@ try {
   const sandbox = await realGateway(3102, 'sandbox');
   const sbx = await fetch('http://localhost:3102/v1/checkouts', { method: 'POST', headers: awaKey, body: JSON.stringify({ amount: 5000 }) });
   check(sbx.status !== 403, `Bitnob sandbox (secret « prd: ») : entreprise non vérifiée, test autorisé (${sbx.status})`);
+  check((await json(await fetch(`http://localhost:3102/v1/checkouts/${sbxTest}`))).can_simulate === true, 'Sandbox + YOMBAL_TEST_HELPERS : bouton « Simuler le paiement » proposé');
+  const sbxSim = await simulateOn(3102, sbxTest);
+  const sbxSimj = await json(sbxSim);
+  check(sbxSim.status === 200 && sbxSimj.checkout?.status === 'paid', 'Sandbox : facture de test simulée → « Payé »');
+  const sbxRow = (await sdb.query(`SELECT confirmed_by FROM checkouts WHERE id = $1`, [sbxTest])).rows[0];
+  const sbxLedger = (await sdb.query(`SELECT count(*)::int AS n FROM ledger_entries WHERE checkout_id = $1 AND type = 'payment'`, [sbxTest])).rows[0].n;
+  check(sbxRow.confirmed_by === 'sandbox_simulation' && sbxLedger === 1, 'Sandbox : paiement crédité une fois au registre, marqué « simulation »');
+  check((await simulateOn(3102, sbxTest)).status === 403, 'Sandbox : un paiement déjà payé ne se simule pas deux fois');
+  check((await simulateOn(3102, sbxReal)).status === 403, 'Sandbox : une facture réelle (lnbc…) ne se simule jamais');
   sandbox.kill();
+  const sandboxOff = await realGateway(3103, 'sandbox', { YOMBAL_TEST_HELPERS: 'false' }); // le .env local peut l'activer
+  check((await simulateOn(3103, sbxOff)).status === 403, 'Sandbox sans YOMBAL_TEST_HELPERS : simulation refusée');
+  sandboxOff.kill();
+  await sdb.end();
 
   // ── Adresse Lightning (LNURL-pay) ─────────────────────────────────────────
   const lnp = await json(await fetch(`${API}/.well-known/lnurlp/fatou`));

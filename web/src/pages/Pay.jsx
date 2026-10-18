@@ -246,9 +246,10 @@ export default function Pay() {
                   {checking ? t.checking : t.iPaid}
                 </button>
               )}
-              {c.demo && (method === 'ln' || usdtStarted) && (
+              {/* Démo : Lightning ou USDT. Sandbox Bitnob (facture lntb…) : Lightning seulement */}
+              {c.can_simulate && (method === 'ln' || (c.demo && usdtStarted)) && (
                 <button className="btn demo" onClick={simulate} disabled={simulating}>
-                  {simulating ? t.simulating : t.simulate}
+                  {simulating ? t.simulating : c.demo ? t.simulate : t.simulateSandbox}
                 </button>
               )}
             </div>

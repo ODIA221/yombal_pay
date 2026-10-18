@@ -29,6 +29,14 @@ export function savingsXof(amountXof, feeXof) {
   return Math.max(0, Math.round((amountXof * config.savingsBenchmarkBps) / 10_000 - feeXof));
 }
 
+// Paiement simulable (bouton « Simuler le paiement ») : facture de démo en mode démo, ou facture de test
+// (lntb…) quand Bitnob confirme la sandbox et que YOMBAL_TEST_HELPERS=true. Jamais une facture réelle.
+export function canSimulate(c) {
+  if (c.status !== 'pending') return false;
+  if (c.demo) return config.demoMode;
+  return config.testHelpers && config.bitnob.environment === 'sandbox' && /^lntb/i.test(c.invoice_request || '');
+}
+
 export function publicCheckout(c) {
   return {
     id: c.id,
@@ -49,6 +57,7 @@ export function publicCheckout(c) {
     created_at: c.created_at,
     paid_at: c.paid_at,
     demo: c.demo,
+    can_simulate: canSimulate(c),
     pay_asset: c.pay_asset ?? 'BTC',
     // Preuve publique pour le reçu : empreinte de la facture Lightning, ou hash des transactions blockchain
     proof:

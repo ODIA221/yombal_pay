@@ -182,7 +182,7 @@ X-API-Key: sk_…</code></pre>
       <p>Cours du moment : <code>xof_per_btc</code>, <code>sats_per_1000_xof</code>. Sans authentification.</p>
 
       <h3><span class="method post">POST</span><span class="endpoint">/v1/checkouts/:id/simulate-payment</span></h3>
-      <p>Mode démo seulement : marque le paiement comme payé, comme si le client avait payé. Voir <a href="#mode-test">Mode test</a>.</p>
+      <p>Mode démo, ou sandbox Bitnob avec <code>YOMBAL_TEST_HELPERS=true</code> : marque le paiement comme payé, comme si le client avait payé. Voir <a href="#mode-test">Mode test</a>.</p>
     </section>
 
     <section id="objet">
@@ -272,9 +272,10 @@ app.post("/hooks/yombalpay", express.raw({ type: "application/json" }), (req, re
       <p>Deux façons de tester sans dépenser de vrais bitcoins :</p>
       <ul>
         <li><b>Mode démo</b> (passerelle sans clés Bitnob, ou <code>DEMO_MODE=true</code>) : les factures sont simulées. Sur la page de paiement, cliquez sur <b>Simuler le paiement</b>, ou appelez <code>POST /v1/checkouts/:id/simulate-payment</code>.</li>
-        <li><b>Bitnob sandbox</b> : les factures sont de vraies factures du réseau de test (elles commencent par <code>lntb</code>). Payez-les depuis un portefeuille de test, ou avec <code>./run.sh pay chk_…</code> sur la passerelle.</li>
+        <li><b>Bitnob sandbox</b> : les factures sont de vraies factures du réseau de test (elles commencent par <code>lntb</code>). Payez-les avec un portefeuille Lightning testnet. Le portefeuille sandbox de Bitnob ne sait pas payer de facture Lightning : pour simuler, mettez <code>YOMBAL_TEST_HELPERS=true</code> dans le <code>.env</code> de la passerelle, puis cliquez sur <b>Simuler le paiement (sandbox)</b> sur la page de paiement, ou appelez <code>POST /v1/checkouts/:id/simulate-payment</code>.</li>
       </ul>
       <p>Le paiement passe à <code>paid</code> et votre webhook est envoyé, exactement comme en vrai.</p>
+      <p class="warn">La simulation est refusée dès que Bitnob indique une clé de production, et pour toute facture réelle (<code>lnbc…</code>) : elle ne peut jamais créditer de l'argent qui n'a pas été payé.</p>
     </section>
 
     <section id="sdk">

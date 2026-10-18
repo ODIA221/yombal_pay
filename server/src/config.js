@@ -85,6 +85,10 @@ export const config = {
     tolerancePct: Number(process.env.USDT_TOLERANCE_PCT ?? 1),
   },
 
+  // Bouton « Simuler le paiement » sur les factures de test quand Bitnob confirme la sandbox (le portefeuille
+  // sandbox ne peut pas payer de facture Lightning). Sans effet en production.
+  testHelpers: process.env.YOMBAL_TEST_HELPERS === 'true',
+
   // Signature des jetons courts (lien de confirmation d'e-mail, connexion Google). Sans valeur, un secret
   // aléatoire est tiré au démarrage : les liens déjà envoyés ne marchent plus après un redémarrage.
   signingSecret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),

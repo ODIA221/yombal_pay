@@ -13,8 +13,10 @@ import { listDeliveries, retryDelivery } from '../lib/notifier.js';
 import { balancesView, convertToUsdt, listConversions, listLedger, stats } from '../lib/ledger.js';
 import { corridorStatus, createPayout, listPayouts, NETWORKS, normalizeSnPhone, publicPayout } from '../lib/payouts.js';
 import {
+  canSimulate,
   createCheckout,
   getCheckout,
+  markPaid,
   listCheckouts,
   privateCheckout,
   publicCheckout,
@@ -160,11 +162,22 @@ api.post('/checkouts/:id/usdt', rateLimit({ name: 'usdt-address', limit: 10, win
 
 // Mode démo : simule le webhook Bitnob (même chemin de code que le vrai webhook)
 api.post('/checkouts/:id/simulate-payment', wrap(async (req, res) => {
-  if (!config.demoMode) return fail(res, 403, 'live_mode', 'Simulation désactivée en mode réel.');
   const c = await getCheckout(req.params.id);
   if (!c) return fail(res, 404, 'not_found', 'Paiement introuvable.');
-  // Une vraie facture Bitnob (créée en mode réel) ne se simule jamais, même si le serveur repasse en démo
-  if (!c.demo) return fail(res, 403, 'live_checkout', 'Ce paiement est réel : il ne peut pas être simulé.');
+  // Facture Bitnob : simulable seulement en sandbox confirmée, facture de test (lntb…) et YOMBAL_TEST_HELPERS=true.
+  // Le portefeuille sandbox de Bitnob ne paie pas les factures Lightning : on confirme comme un vrai paiement
+  // (registre, notification du site marchand, temps réel), sans passer par Bitnob.
+  if (!c.demo) {
+    if (!canSimulate(c)) {
+      return config.demoMode
+        ? fail(res, 403, 'live_checkout', 'Ce paiement est réel : il ne peut pas être simulé.')
+        : fail(res, 403, 'live_mode', 'Simulation réservée aux factures de test, en sandbox Bitnob avec YOMBAL_TEST_HELPERS=true.');
+    }
+    if (req.body?.asset === 'USDT') return fail(res, 422, 'usdt_sandbox', 'Simulation USDT disponible en mode démo seulement.');
+    await markPaid(c.id, { by: 'sandbox_simulation' });
+    return res.json({ simulated: true, checkout: publicCheckout(await getCheckout(c.id)) });
+  }
+  if (!config.demoMode) return fail(res, 403, 'live_mode', 'Simulation désactivée en mode réel.');
   // Dépôt USDT simulé sur la dernière adresse demandée (montant exact attendu)
   const addr = req.body?.asset === 'USDT' ? c.usdt_addresses?.at(-1) : null;
   if (req.body?.asset === 'USDT') {
