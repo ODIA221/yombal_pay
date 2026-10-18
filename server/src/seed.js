@@ -66,6 +66,9 @@ export async function seedDemo() {
       );
     });
   }
+  // Code de retrait du compte démo, aligné sur le .env (2026 par défaut)
+  if (/^\d{4,6}$/.test(d.payoutPin) && !(m.payout_pin_hash && (await verifyPassword(d.payoutPin, m.payout_pin_hash))))
+    m = await one('UPDATE merchants SET payout_pin_hash = $2 WHERE id = $1 RETURNING *', [m.id, await hashPassword(d.payoutPin)]);
   await createApiKey(m.id, 'Boutique de démo', { rawKey: d.apiKey });
   // Seule la clé de démo actuelle reste active (l'ancienne clé « waxco » est révoquée)
   await one(

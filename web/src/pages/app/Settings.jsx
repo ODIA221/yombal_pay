@@ -15,9 +15,14 @@ const ACTIONS = {
   api_key_revoked: 'Clé API révoquée',
   webhook_secret_rotated: 'Secret webhook régénéré',
   payout_created: 'Retrait demandé',
-  payout_password_failed: 'Retrait refusé (mot de passe)',
+  payout_password_failed: 'Retrait refusé (code ou mot de passe)',
   payout_account_changed: 'Compte de retrait modifié',
   payout_account_password_failed: 'Changement du compte de retrait refusé (mot de passe)',
+  payout_pin_set: 'Code de retrait défini',
+  payout_pin_removed: 'Code de retrait supprimé',
+  payout_pin_password_failed: 'Changement du code de retrait refusé (mot de passe)',
+  savings_unlock: 'Épargne débloquée',
+  savings_unlock_password_failed: 'Déblocage d’épargne refusé (code ou mot de passe)',
   staff_created: 'Caissier ajouté',
   staff_disabled: 'Caissier désactivé',
   staff_login: 'Connexion caissier',
@@ -35,6 +40,7 @@ export default function Settings() {
   const [payout, setPayout] = useState({ network: merchant.payout?.network || 'wave', phone: merchant.payout?.phone ? merchant.payout.phone.replace(/^(\d{2})(\d{3})(\d{2})(\d{2})$/, '$1 $2 $3 $4') : '', name: merchant.payout?.name || '' });
   const [pw, setPw] = useState({ current_password: '', new_password: '' });
   const [payoutPw, setPayoutPw] = useState('');
+  const [pin, setPin] = useState({ pin: '', password: '' });
   const [audit, setAudit] = useState([]);
 
   useEffect(() => {
@@ -105,6 +111,45 @@ export default function Settings() {
             <input type="password" required autoComplete="current-password" value={payoutPw} onChange={(e) => setPayoutPw(e.target.value)} />
           </Field>
           <button className="btn primary sm">Enregistrer</button>
+        </form>
+      </section>
+
+      <section className="panel">
+        <h2>Code de retrait</h2>
+        <p className="muted small">
+          {merchant.has_payout_pin
+            ? 'Un code est défini : il suffit pour confirmer un retrait ou débloquer l’épargne. Le mot de passe reste accepté.'
+            : 'Confirmez vos retraits avec un code à 4-6 chiffres, plus rapide à taper que le mot de passe.'}
+        </p>
+        <form
+          className="stack"
+          onSubmit={async (e) => {
+            await save({ payout_pin: pin.pin, password: pin.password }, 'Code de retrait enregistré')(e);
+            setPin({ pin: '', password: '' });
+          }}
+        >
+          <Field label={merchant.has_payout_pin ? 'Nouveau code' : 'Code'} hint="4 à 6 chiffres, pas tous identiques.">
+            <input type="password" inputMode="numeric" autoComplete="off" required pattern="[0-9]{4,6}" maxLength={6} value={pin.pin} onChange={(e) => setPin({ ...pin, pin: e.target.value.replace(/\D/g, '') })} />
+          </Field>
+          <Field label="Votre mot de passe" hint="Le code se change uniquement avec le mot de passe du compte.">
+            <input type="password" required autoComplete="current-password" value={pin.password} onChange={(e) => setPin({ ...pin, password: e.target.value })} />
+          </Field>
+          <div className="row wrap">
+            <button className="btn primary sm">{merchant.has_payout_pin ? 'Changer le code' : 'Définir le code'}</button>
+            {merchant.has_payout_pin && (
+              <button
+                type="button"
+                className="btn ghost sm"
+                disabled={!pin.password}
+                onClick={async (e) => {
+                  await save({ payout_pin: null, password: pin.password }, 'Code de retrait supprimé')(e);
+                  setPin({ pin: '', password: '' });
+                }}
+              >
+                Supprimer le code
+              </button>
+            )}
+          </div>
         </form>
       </section>
 

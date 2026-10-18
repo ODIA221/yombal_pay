@@ -64,6 +64,7 @@ try {
   }
   await sleep(300);
   const K = { Authorization: 'Bearer sk_test_acs_demo_2026', 'Content-Type': 'application/json' };
+  check((await json(await fetch(`${API}/v1/merchant`, { headers: K }))).has_payout_pin === true, 'Compte démo : code de retrait défini (2026 par défaut)');
 
   // ── Parcours de paiement ──────────────────────────────────────────────────
   const buy = await fetch(`${SHOP}/buy/dashiki`, { method: 'POST', redirect: 'manual' });
@@ -253,11 +254,21 @@ try {
   check((await me('/v1/savings/unlock', { method: 'POST', body: { amount: 1200, password: 'faux' } })).status === 401, 'Débloquer l’épargne exige le mot de passe');
   const un = await json(await me('/v1/savings/unlock', { method: 'POST', body: { amount: 1200, password: 'dakar2026' } }));
   check(un.balance.micro === 3_000_000, 'Épargne débloquée : 2 USDT reviennent au solde disponible');
+  // Code de retrait : 4 à 6 chiffres, accepté à la place du mot de passe pour retirer ou débloquer l'épargne
+  const unlockWith = (password) => me('/v1/savings/unlock', { method: 'POST', body: { amount: 600, password } });
+  check((await unlockWith('2468')).status === 401, 'Sans code défini, un code chiffré est refusé');
+  check((await me('/v1/merchant', { method: 'PATCH', body: { payout_pin: '1111', password: 'dakar2026' } })).status === 422, 'Code aux chiffres tous identiques refusé (422)');
+  check((await me('/v1/merchant', { method: 'PATCH', body: { payout_pin: '2468', password: 'faux' } })).status === 401, 'Définir le code exige le mot de passe du compte');
+  const withPin = await json(await me('/v1/merchant', { method: 'PATCH', body: { payout_pin: '2468', password: 'dakar2026' } }));
+  check(withPin.has_payout_pin === true && !JSON.stringify(withPin).includes('2468'), 'Code de retrait enregistré (haché, jamais renvoyé)');
+  check((await unlockWith('1357')).status === 401, 'Mauvais code de retrait refusé');
+  const unPin = await json(await unlockWith('2468'));
+  check(unPin.balance.micro === 2_000_000, 'Épargne débloquée avec le code de retrait');
   const saleS = await json(await anon('/v1/public/merchants/fatou/checkouts', { method: 'POST', body: { amount: 20000 } }));
   await fetch(`${API}/v1/checkouts/${saleS.id}/simulate-payment`, { method: 'POST' });
   await sleep(800);
   const auto = await json(await me('/v1/savings'));
-  check(auto.balance.micro > 3_000_000 && auto.history.some((h) => h.description.includes('automatique')), `Vente de 20 000 FCFA → ${(auto.balance.micro / 1e6 - 3).toFixed(2)} USDT épargnés automatiquement`);
+  check(auto.balance.micro > 2_000_000 && auto.history.some((h) => h.description.includes('automatique')), `Vente de 20 000 FCFA → ${(auto.balance.micro / 1e6 - 2).toFixed(2)} USDT épargnés automatiquement`);
   await me('/v1/savings', { method: 'PATCH', body: { pct: 0 } });
 
   // ── Équipe : caissier ─────────────────────────────────────────────────────
