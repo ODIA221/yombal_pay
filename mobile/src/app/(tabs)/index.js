@@ -1,5 +1,5 @@
 // Accueil : solde en FCFA, actions rapides, ventes du jour, frais évités par les clients, derniers paiements.
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../lib/api';
@@ -22,6 +22,7 @@ export default function Home() {
   return (
     <Screen refreshing={refreshing} onRefresh={refresh}>
       <View style={st.head}>
+        <Image source={require('../../../assets/logo-mark-dark.png')} style={st.mark} accessibilityLabel="YombalPay" />
         <View style={{ flex: 1 }}>
           <T.Eyebrow>{hour < 18 ? 'Bonjour' : 'Bonsoir'}</T.Eyebrow>
           <T.Title numberOfLines={1}>{data.merchant.name}</T.Title>
@@ -130,6 +131,7 @@ function Stat({ label, value, sub }) {
 }
 
 const st = StyleSheet.create({
+  mark: { width: 44, height: 44 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
   balance: { borderRadius: radius.xl, padding: 22, backgroundColor: '#1c1710', borderWidth: 1, borderColor: 'rgba(247,147,26,0.35)', gap: 6 },
   balanceLabel: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 14 },

@@ -58,9 +58,9 @@ input[type='range'] { padding: 0; accent-color: var(--btc); background: none; bo
 .amt-neg { color: var(--text); }
 
 /* Logo & nav */
-.logo { display: inline-flex; align-items: center; gap: 8px; font: 600 18px var(--display); letter-spacing: -0.02em; }
-.logo b { color: var(--btc); font-weight: 700; }
-.logo-mark { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: var(--btc); color: var(--bg); flex: none; }
+.logo { display: block; height: 56px; width: auto; max-width: 100%; user-select: none; }
+.logo-compact { height: 32px; }
+.auth-logo .logo { height: 80px; }
 .nav { display: flex; justify-content: space-between; align-items: center; padding: 14px clamp(16px, 4vw, 48px); border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #0e0f13e6; backdrop-filter: blur(10px); z-index: 10; }
 .nav-logo { text-decoration: none; }
 .nav-links { display: flex; gap: 4px; align-items: center; }
@@ -486,9 +486,7 @@ td a { text-decoration: none; color: var(--text); }
 .check svg { width: 84px; height: 84px; }
 .pay-foot { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--muted); align-items: center; text-align: center; }
 .secured { display: inline-flex; gap: 6px; align-items: center; }
-.secured .logo { font-size: 13px; }
-.secured .logo-mark { width: 18px; height: 18px; border-radius: 5px; }
-.secured .logo-mark svg { width: 11px; height: 11px; }
+.secured .logo { height: 32px; }
 
 /* Rapprochement comptable */
 .reconciliation h2 { display: flex; gap: 8px; align-items: center; }
@@ -511,8 +509,7 @@ td a { text-decoration: none; color: var(--text); }
 .receipt-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
 .receipt { width: 100%; max-width: 480px; background: #fff; color: #17181c; border-radius: 16px; padding: 28px; box-shadow: 0 12px 40px #0002; }
 .receipt.center { text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center; }
-.receipt .logo { color: #17181c; }
-.receipt .logo b { color: #c66a00; }
+.receipt .logo { height: 48px; }
 .receipt-head { display: flex; justify-content: space-between; align-items: center; }
 .receipt-badge { padding: 4px 10px; border-radius: 99px; background: #dcfce7; color: #15803d; font: 600 12px var(--body); }
 .receipt-kind { margin: 22px 0 2px; color: #6b6f78; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -540,7 +537,7 @@ td a { text-decoration: none; color: var(--text); }
 /* Poster (impression) */
 .poster { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 24px; margin-bottom: 14px; border-radius: 18px; background: #fff; color: #0e0f13; }
 .poster h2 { font-size: 28px; }
-.poster .logo b { color: #c66a00; }
+.poster .logo { height: 72px; }
 .poster-qr { padding: 10px; border: 3px solid #f7931a; border-radius: 16px; }
 @media print {
   body:has(#poster) * { visibility: hidden; }
@@ -562,6 +559,7 @@ td a { text-decoration: none; color: var(--text); }
   .sidebar { display: none; }
   .topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10; background: #0e0f13ee; backdrop-filter: blur(10px); }
   .topbar-logo { text-decoration: none; margin-right: auto; }
+  .topbar-logo .logo { height: 44px; }
   .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: #14161cf2; backdrop-filter: blur(12px); border-top: 1px solid var(--line); padding: 6px 4px calc(6px + var(--safe-b)); }
   .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; color: var(--muted); text-decoration: none; font: 600 10.5px var(--body); border-radius: 10px; }
   .tabbar a.active { color: var(--btc); }

@@ -108,7 +108,7 @@ export default function Links() {
       {poster && (
         <Modal title="Affiche pour le comptoir" onClose={() => setPoster(false)}>
           <div className="poster" id="poster">
-            <Logo />
+            <Logo light />
             <h2>{merchant.name}</h2>
             <p>Payez en Bitcoin, d'où que vous soyez</p>
             <div className="poster-qr">

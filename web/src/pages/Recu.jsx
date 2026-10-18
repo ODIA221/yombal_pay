@@ -67,7 +67,7 @@ export default function Recu() {
 
       <article className="receipt">
         <header className="receipt-head">
-          <Logo />
+          <Logo light />
           <span className="receipt-badge">{t.received}</span>
         </header>
         <p className="receipt-kind">{t.receipt}</p>
