@@ -93,7 +93,16 @@ app.get('/boutique', (_req, res) => res.redirect(302, process.env.SHOP_URL || 'h
 
 // Front React (site, tableau de bord, caisse, pages de paiement) servi par la même origine
 if (fs.existsSync(webDist)) {
-  app.use(express.static(webDist, { index: false, maxAge: '1h' }));
+  app.use(
+    express.static(webDist, {
+      index: false,
+      // assets/ : noms avec empreinte (Vite), changent à chaque version → cache long.
+      // Le reste (accueil.js, site-nav.js, docs, images…) garde son nom : le navigateur revérifie à chaque
+      // visite (ETag), sinon un ancien script en cache côtoie le nouveau et casse la page.
+      setHeaders: (res, filePath) =>
+        res.setHeader('Cache-Control', filePath.includes(`${path.sep}assets${path.sep}`) ? 'public, max-age=31536000, immutable' : 'no-cache'),
+    }),
+  );
   const spa = (_req, res) => res.sendFile(path.join(webDist, 'index.html'));
   // Pages statiques : accueil (carte 3D, parcours, tarifs) et documentation, dans web/public/
   app.get('/', (_req, res) => res.sendFile(path.join(webDist, 'accueil.html')));
