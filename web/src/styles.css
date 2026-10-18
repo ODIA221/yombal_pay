@@ -477,6 +477,7 @@ td a { text-decoration: none; color: var(--text); }
 .timer { font: 600 13px var(--mono); color: var(--text); background: var(--bg-2); padding: 2px 8px; border-radius: 6px; }
 .actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .actions.small { display: flex; justify-content: space-between; flex-wrap: wrap; margin-top: 10px; }
+.wallet-hint { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--btc-soft); color: var(--text); font-size: 13px; line-height: 1.45; text-align: center; }
 .how { margin-top: 14px; color: var(--muted); font-size: 13px; }
 .how summary { cursor: pointer; }
 .how ol { padding-left: 18px; margin: 8px 0 0; }
