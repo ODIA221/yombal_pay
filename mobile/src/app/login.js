@@ -1,6 +1,6 @@
 // Connexion du marchand ou du caissier, avec l'adresse du serveur modifiable (l'IP de l'ordinateur change souvent).
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api, getBaseUrl, rediscover, saveServerUrl } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -49,12 +49,7 @@ export default function Login() {
   return (
     <Screen style={{ flexGrow: 1, justifyContent: 'center', gap: 22 }}>
       <View style={{ gap: 14 }}>
-        <View style={s.logo}>
-          <Ionicons name="flash" size={30} color={colors.onBtc} />
-        </View>
-        <T.Title style={{ fontSize: 34 }}>
-          Yombal<Text style={{ color: colors.btc }}>Pay</Text>
-        </T.Title>
+        <Image source={require('../../assets/logo-dark.png')} style={s.logo} resizeMode="contain" accessibilityLabel="YombalPay" />
         <T.Body style={{ color: colors.muted, fontSize: 17 }}>Encaissez le monde entier en FCFA. Recevez sur Wave.</T.Body>
       </View>
 
@@ -91,7 +86,7 @@ export default function Login() {
 }
 
 const s = StyleSheet.create({
-  logo: { width: 60, height: 60, borderRadius: 18, backgroundColor: colors.btc, alignItems: 'center', justifyContent: 'center' },
+  logo: { width: 264, height: 110, marginLeft: -6 },
   server: { gap: 12, backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, padding: 14 },
   serverHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   dot: { width: 10, height: 10, borderRadius: 5 },

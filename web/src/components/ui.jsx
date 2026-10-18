@@ -50,19 +50,11 @@ export function Icon({ name, size = 20, className = '' }) {
   );
 }
 
-export function Logo({ compact = false }) {
-  return (
-    <span className="logo">
-      <span className="logo-mark">
-        <Bolt size={16} />
-      </span>
-      {!compact && (
-        <span>
-          Yombal<b>Pay</b>
-        </span>
-      )}
-    </span>
-  );
+// Logo officiel (brand/logo.png, déclinaisons générées par scripts/brand-assets.py).
+// light : version d'origine pour fond clair (reçu, affiche) ; compact : symbole seul.
+export function Logo({ compact = false, light = false }) {
+  const src = compact ? (light ? '/logo-mark.png' : '/logo-mark-dark.png') : light ? '/logo.png' : '/logo-dark.png';
+  return <img className={compact ? 'logo logo-compact' : 'logo'} src={src} alt="YombalPay" draggable="false" />;
 }
 
 export function Pill({ status, label }) {
