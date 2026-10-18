@@ -1,5 +1,5 @@
 // Marchands, clés API (hashées) et sessions du tableau de bord.
-import { config } from '../config.js';
+import { config, realMoney } from '../config.js';
 import { one, many, query, tx } from '../db/pool.js';
 import { newId } from './ids.js';
 import { hashPassword, randomToken, sha256 } from './security.js';
@@ -17,25 +17,31 @@ export function validateUsername(u) {
 export const keyMode = () => (config.demoMode ? 'test' : 'live');
 export const lightningAddress = (m) => `${m.username}@${config.publicHost.replace(/:\d+$/, '')}`;
 
-export async function createMerchant({ name, email, password, username, phone }, client) {
+// password absent (compte créé avec Google) : pas de mot de passe tant que le marchand n'en choisit pas un.
+// googleSub : l'adresse a déjà été vérifiée par Google, elle est confirmée d'emblée.
+export async function createMerchant({ name, email, password, username, phone, googleSub = null }, client) {
   const m = await one(
-    `INSERT INTO merchants (id, name, username, email, password_hash, phone, webhook_secret, publishable_key, fee_bps)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+    `INSERT INTO merchants (id, name, username, email, password_hash, phone, webhook_secret, publishable_key, fee_bps, google_sub, email_verified_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
     [
       newId('mer'),
       name,
       username,
       email.toLowerCase(),
-      await hashPassword(password),
+      password ? await hashPassword(password) : null,
       phone || null,
       `whsec_${randomToken(24)}`,
       `pk_${keyMode()}_${randomToken(18)}`,
       config.feeBps,
+      googleSub,
+      googleSub ? new Date() : null,
     ],
     client,
   );
   return m;
 }
+
+export const merchantByGoogleSub = (sub) => one('SELECT * FROM merchants WHERE google_sub = $1', [String(sub || '')]);
 
 export const merchantById = (id, client) => one('SELECT * FROM merchants WHERE id = $1', [id], client);
 export const merchantByEmail = (email) => one('SELECT * FROM merchants WHERE email = $1', [String(email || '').toLowerCase()]);
@@ -132,6 +138,12 @@ export function merchantView(m) {
     has_payout_pin: Boolean(m.payout_pin_hash),
     staff: m.staff_id ? { id: m.staff_id, name: m.staff_name, email: m.staff_email, role: m.staff_role } : null,
     is_demo: m.is_demo,
+    email_verified: Boolean(m.email_verified_at),
+    has_password: Boolean(m.password_hash),
+    google_linked: Boolean(m.google_sub),
+    verification: { status: m.verification_status, note: m.verification_note },
+    real_money: realMoney(),
+    is_admin: !m.staff_id && config.adminEmails.includes(String(m.email).toLowerCase()),
     created_at: m.created_at,
   };
 }

@@ -16,6 +16,8 @@ import Epargne from './pages/app/Epargne.jsx';
 import Links from './pages/app/Links.jsx';
 import Developers from './pages/app/Developers.jsx';
 import Settings from './pages/app/Settings.jsx';
+import Activation from './pages/app/Activation.jsx';
+import Admin from './pages/app/Admin.jsx';
 import { AuthProvider, useAuth } from './lib/auth.jsx';
 import { Logo, ToastProvider } from './components/ui.jsx';
 import './styles.css';
@@ -68,6 +70,8 @@ function Shell() {
           <Route path="liens" element={<Links />} />
           <Route path="developpeurs" element={<Developers />} />
           <Route path="reglages" element={<Settings />} />
+          <Route path="activation" element={<Activation />} />
+          <Route path="admin" element={<Admin />} />
           <Route path="plus" element={<MoreMenu />} />
         </Route>
         <Route path="*" element={<AtOrHome />} />

@@ -69,6 +69,12 @@ export async function seedDemo() {
   // Code de retrait du compte démo, aligné sur le .env (2026 par défaut)
   if (/^\d{4,6}$/.test(d.payoutPin) && !(m.payout_pin_hash && (await verifyPassword(d.payoutPin, m.payout_pin_hash))))
     m = await one('UPDATE merchants SET payout_pin_hash = $2 WHERE id = $1 RETURNING *', [m.id, await hashPassword(d.payoutPin)]);
+  // Le compte démo est confirmé et vérifié : la boutique de démo encaisse sans étape d'activation
+  await one(
+    `UPDATE merchants SET email_verified_at = COALESCE(email_verified_at, now()), verification_status = 'verified',
+       verification = COALESCE(verification, $2) WHERE id = $1 RETURNING 1`,
+    [m.id, { legal_name: d.name, legal_form: 'ei', sector: 'artisanat', city: 'Dakar' }],
+  );
   await createApiKey(m.id, 'Boutique de démo', { rawKey: d.apiKey });
   // Seule la clé de démo actuelle reste active (l'ancienne clé « waxco » est révoquée)
   await one(

@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useRef } from 'react';
-import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Navigate, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth.jsx';
-import { live } from '../lib/api.js';
+import { api, live } from '../lib/api.js';
 import { fcfa } from '../lib/format.js';
 import { Icon, Logo, Spinner, playChaChing, useToast } from './ui.jsx';
 
@@ -22,9 +22,60 @@ const NAV = [
   { to: '/app/epargne', label: 'Épargne', icon: 'lock' },
   { to: '/app/liens', label: 'Liens & QR', icon: 'link' },
   { to: '/app/developpeurs', label: 'Développeurs', icon: 'code' },
+  { to: '/app/activation', label: 'Activation', icon: 'shield' },
   { to: '/app/reglages', label: 'Réglages', icon: 'settings' },
 ];
+// Visible seulement des administrateurs YombalPay (ADMIN_EMAILS)
+const ADMIN_NAV = { to: '/app/admin', label: 'Administration', icon: 'key' };
+const ownerNav = (m) => (m.is_admin ? [...NAV, ADMIN_NAV] : NAV);
 const MOBILE = ['/app', '/app/caisse', '/app/paiements', '/app/portefeuille'];
+
+// Bandeau du compte : e-mail à confirmer, entreprise à faire vérifier quand l'argent est réel
+function AccountBanner({ merchant }) {
+  const toast = useToast();
+  const [sending, setSending] = useState(false);
+  if (merchant.staff) return null;
+  if (!merchant.email_verified)
+    return (
+      <div className="callout warn account-banner">
+        <span>
+          <strong>Confirmez votre adresse e-mail</strong> pour encaisser vos premiers paiements. Nous avons envoyé un lien à {merchant.email}.
+        </span>
+        <button
+          className="btn ghost sm"
+          disabled={sending}
+          onClick={async () => {
+            setSending(true);
+            try {
+              await api('/v1/auth/resend-confirmation', { method: 'POST' });
+              toast(`Lien renvoyé à ${merchant.email}.`);
+            } catch (err) {
+              toast(err.message, 'bad');
+            } finally {
+              setSending(false);
+            }
+          }}
+        >
+          Renvoyer le lien
+        </button>
+      </div>
+    );
+  if (merchant.real_money && merchant.verification?.status !== 'verified')
+    return (
+      <div className="callout warn account-banner">
+        <span>
+          <strong>{merchant.verification?.status === 'pending' ? 'Vérification en cours.' : 'Faites vérifier votre entreprise'}</strong>{' '}
+          {merchant.verification?.status === 'pending' ? 'Vous pourrez encaisser dès que votre entreprise sera vérifiée.' : 'pour recevoir de vrais paiements et retirer vers votre mobile money.'}
+        </span>
+        {merchant.verification?.status !== 'pending' && (
+          <NavLink to="/app/activation" className="btn ghost sm">
+            Activer mon compte
+          </NavLink>
+        )}
+      </div>
+    );
+  return null;
+}
 // Un caissier n'accède qu'à la caisse et à ses propres ventes
 const STAFF_NAV = [
   { to: '/app/caisse', label: 'Caisse', icon: 'pos' },
@@ -32,10 +83,11 @@ const STAFF_NAV = [
 ];
 
 export default function AppLayout() {
-  const { merchant, logout } = useAuth();
+  const { merchant, logout, refresh } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const [params, setParams] = useSearchParams();
   const listeners = useRef(new Set());
   const busRef = useRef({ on: (fn) => (listeners.current.add(fn), () => listeners.current.delete(fn)) });
 
@@ -52,13 +104,21 @@ export default function AppLayout() {
     });
   }, [merchant, toast]);
 
+  // Retour du lien de confirmation (/app?email=confirme)
+  useEffect(() => {
+    if (params.get('email') !== 'confirme') return;
+    refresh();
+    toast('Adresse e-mail confirmée. Vous pouvez encaisser vos premiers paiements.');
+    setParams({}, { replace: true });
+  }, [params, setParams, refresh, toast]);
+
   if (merchant === undefined) return <div className="center-screen"><Spinner /></div>;
   if (merchant === null) return <Navigate to={`/login?next=${encodeURIComponent(pathname)}`} replace />;
 
   const isPos = pathname === '/app/caisse';
   const staff = merchant.staff;
   if (staff && !STAFF_NAV.some((n) => n.to === pathname)) return <Navigate to="/app/caisse" replace />;
-  const nav = staff ? STAFF_NAV : NAV;
+  const nav = staff ? STAFF_NAV : ownerNav(merchant);
   const tabs = staff ? STAFF_NAV : NAV.filter((n) => MOBILE.includes(n.to));
 
   return (
@@ -123,6 +183,7 @@ export default function AppLayout() {
               </NavLink>
             )}
           </header>
+          <AccountBanner merchant={merchant} />
           <Outlet />
         </main>
 
@@ -153,7 +214,7 @@ export function MoreMenu() {
     <div className="page narrow">
       <h1 className="page-title">Menu</h1>
       <div className="menu-list">
-        {NAV.filter((n) => !MOBILE.includes(n.to)).map((n) => (
+        {ownerNav(merchant).filter((n) => !MOBILE.includes(n.to)).map((n) => (
           <NavLink key={n.to} to={n.to}>
             <Icon name={n.icon} /> {n.label}
           </NavLink>

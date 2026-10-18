@@ -28,6 +28,7 @@ import { processBitnobEvent } from './webhooks.js';
 import { depositAddress } from '../lib/stablecoins.js';
 import { saveXof, savingsView, unlock } from '../lib/savings.js';
 import { reconcileMerchant } from '../lib/reconciliation.js';
+import { isAdmin, LEGAL_FORMS, listVerifications, reviewVerification, SECTORS, submitVerification, verificationView } from '../lib/verification.js';
 
 export const api = express.Router();
 api.use(express.json({ limit: '100kb' }));
@@ -104,7 +105,7 @@ api.post(
       const { checkout, created } = await createCheckout(req.merchant, input);
       res.status(created ? 201 : 200).json(publicCheckout(checkout));
     } catch (e) {
-      if (e.status) return fail(res, e.status, 'invalid_request', e.message);
+      if (e.status) return fail(res, e.status, e.code || 'invalid_request', e.message);
       bitnobFail(res, e, { showDetail: req.authVia === 'session' || req.authVia === 'staff' });
     }
   }),
@@ -210,10 +211,43 @@ api.post(
       });
       res.status(201).json(publicCheckout(checkout));
     } catch (e) {
+      if (e.status === 403) return fail(res, 403, e.code, `${m.name} ne peut pas encore recevoir de paiements.`);
       bitnobFail(res, e);
     }
   }),
 );
+
+// ── Vérification de l'entreprise (KYB) ──────────────────────────────────────
+api.get('/verification', sessionOnly, (req, res) => res.json({ ...verificationView(req.merchant), legal_forms: LEGAL_FORMS, sectors: SECTORS }));
+
+api.post('/verification', sessionOnly, rateLimit({ name: 'verification', limit: 10, windowMs: 3_600_000, key: (req) => req.merchant.id }), wrap(async (req, res) => {
+  try {
+    const r = await submitVerification(req.merchant, req.body || {});
+    if (r.errors) return res.status(422).json({ error: { code: 'invalid_verification', message: 'Certaines informations sont à corriger.', fields: r.errors } });
+    await audit(req.merchant.id, 'verification_submitted', req);
+    res.status(201).json(verificationView(r.merchant));
+  } catch (e) {
+    if (e.status) return fail(res, e.status, e.code, e.message);
+    throw e;
+  }
+}));
+
+// ── Administration YombalPay : validation des entreprises (ADMIN_EMAILS) ────
+const adminOnly = (req, res, next) => (isAdmin(req.merchant) ? next() : fail(res, 403, 'forbidden', 'Accès réservé aux administrateurs YombalPay.'));
+
+api.get('/admin/verifications', sessionOnly, adminOnly, wrap(async (req, res) => {
+  const status = ['pending', 'verified', 'rejected'].includes(req.query.status) ? req.query.status : 'pending';
+  res.json({ data: await listVerifications(status) });
+}));
+
+api.post('/admin/verifications/:id', sessionOnly, adminOnly, wrap(async (req, res) => {
+  const decision = req.body?.decision;
+  if (!['approve', 'reject'].includes(decision)) return fail(res, 422, 'invalid_decision', 'decision doit valoir approve ou reject.');
+  const m = await reviewVerification(req.params.id, decision === 'approve', req.body?.note);
+  if (!m) return fail(res, 404, 'not_found', 'Aucune demande en attente pour ce marchand.');
+  await audit(m.id, decision === 'approve' ? 'verification_approved' : 'verification_rejected', req, { admin: req.merchant.email });
+  res.json({ id: m.id, status: m.verification_status, note: m.verification_note });
+}));
 
 // ── Liens de paiement (partage WhatsApp) ────────────────────────────────────
 api.get('/payment-links', merchantOnly, wrap(async (req, res) => {

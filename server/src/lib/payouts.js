@@ -1,7 +1,7 @@
 // Retraits vers mobile money (Wave, Orange Money, Free Money, Expresso) via les payouts Bitnob : quote → initialize → finalize.
 // Le solde est débité dans la même transaction que la création du retrait (verrou par marchand),
 // et recrédité automatiquement si Bitnob signale un échec.
-import { config } from '../config.js';
+import { config, realMoney } from '../config.js';
 import { one, many, tx } from '../db/pool.js';
 import { bitnob } from './bitnob.js';
 import { newId } from './ids.js';
@@ -50,6 +50,9 @@ export function publicPayout(p) {
 }
 
 export async function createPayout(merchant, { amount, network, phone, accountName, sourceAsset = 'BTC', trigger = 'manual' }) {
+  // Argent réel : retraits (manuels et automatiques) réservés aux entreprises vérifiées
+  if (realMoney() && merchant.verification_status !== 'verified')
+    throw err("Les retraits réels sont réservés aux entreprises vérifiées. Faites vérifier votre entreprise dans l'espace marchand.", 403);
   const amountXof = Math.round(Number(amount));
   if (!Number.isFinite(amountXof) || amountXof < config.payouts.minXof) throw err(`Montant minimum de retrait : ${config.payouts.minXof} FCFA.`);
   if (amountXof > config.payouts.maxXof) throw err(`Montant maximum par retrait : ${config.payouts.maxXof.toLocaleString('fr-FR')} FCFA.`);

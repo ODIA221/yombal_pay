@@ -3,6 +3,7 @@
 // plus les garde-fous de sécurité (sessions, CSRF, clés, URL, double dépense).
 import { spawn } from 'node:child_process';
 import crypto from 'node:crypto';
+import http from 'node:http';
 import { createRequire } from 'node:module';
 import { ensureDatabase } from './ensure-db.mjs';
 
@@ -22,11 +23,27 @@ try {
   process.exit(1);
 }
 
+// Faux serveur : point de jeton Google (id_token construit par le test, googleNext) et GET /api/whoami de Bitnob
+// (environnement choisi par le test, bitnobEnv) pour les passerelles « argent réel »
+const GOOGLE_CLIENT_ID = 'test-client.apps.googleusercontent.com';
+let googleNext = null;
+let bitnobEnv = 'production';
+const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+const googleStub = http
+  .createServer((req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    if (req.url === '/api/whoami') return res.end(JSON.stringify({ data: { environment: bitnobEnv, client_name: 'test' } }));
+    res.end(JSON.stringify({ access_token: 'x', id_token: `${b64({ alg: 'RS256' })}.${b64(googleNext)}.signature` }));
+  })
+  .listen(4199);
+
 const env = {
   ...process.env,
   PORT: '3100', PUBLIC_URL: API, DATABASE_URL: DB, DEMO_MODE: 'true', RATE_PUBLIC_FALLBACK: 'false',
   BITNOB_WEBHOOK_SECRET, DEMO_MERCHANT_WEBHOOK_URL: `${SHOP}/webhooks/yombalpay`,
   SHOP_PORT: '4100', SHOP_URL: SHOP, YOMBALPAY_URL: API, PAYOUT_MODE: 'simulated',
+  SESSION_SECRET: 'test_session_secret', SMTP_HOST: '', ADMIN_EMAILS: 'admin@test.sn',
+  GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: 'test_google_secret', GOOGLE_TOKEN_URL: 'http://localhost:4199/token',
 };
 const procs = [spawn('node', ['server/src/index.js'], { env }), spawn('node', ['shop/server.js'], { env })];
 let serverLog = '';
@@ -51,6 +68,24 @@ function browser() {
     const r = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
     const set = r.headers.get('set-cookie');
     if (set) cookie = set.split(';')[0];
+    return r;
+  };
+}
+
+// Navigateur qui garde plusieurs cookies (session + état de la connexion Google) et ne suit pas les redirections
+function cookieJar() {
+  const jar = new Map();
+  return async (path, { method = 'GET', body } = {}) => {
+    const headers = { 'Content-Type': 'application/json', Cookie: [...jar].map(([k, v]) => `${k}=${v}`).join('; ') };
+    if (method !== 'GET') headers['X-YombalPay-CSRF'] = '1';
+    const r = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : undefined, redirect: 'manual' });
+    for (const c of r.headers.getSetCookie()) {
+      const [pair, ...attrs] = c.split(';');
+      const i = pair.indexOf('=');
+      const expired = attrs.some((a) => /^\s*expires=Thu, 01 Jan 1970/i.test(a));
+      if (expired) jar.delete(pair.slice(0, i));
+      else jar.set(pair.slice(0, i), pair.slice(i + 1));
+    }
     return r;
   };
 }
@@ -180,6 +215,119 @@ try {
   check(stolen.status === 404, "Un marchand ne voit pas les paiements d'un autre (isolation)");
 
   check((await me('/v1/conversions', { method: 'POST', body: { sats: 5000 }, csrf: false })).status === 403, 'Requête sans en-tête anti-CSRF refusée');
+
+  // ── Confirmation de l'adresse e-mail ──────────────────────────────────────
+  const FK = { Authorization: `Bearer ${suj.secret_key}`, 'Content-Type': 'application/json' };
+  check(suj.merchant.email_verified === false, 'Nouveau compte : adresse e-mail pas encore confirmée');
+  const unconf = await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: FK, body: JSON.stringify({ amount: 5000 }) });
+  check(unconf.status === 403 && (await json(unconf)).error.code === 'email_unverified', 'E-mail non confirmé : création de paiement refusée (403)');
+  const unconfPub = await fetch(`${API}/v1/public/merchants/fatou/checkouts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 5000 }) });
+  check(unconfPub.status === 403, 'E-mail non confirmé : page publique refusée aussi');
+  const confirmLink = serverLog.match(/à fatou@test\.sn · « Confirmez[^\n]*\n\s+Lien : (\S+)/)?.[1];
+  check(Boolean(confirmLink?.includes('/v1/auth/confirm-email?token=')), "Lien de confirmation envoyé à l'inscription");
+  const forgedLink = await fetch(`${confirmLink}A`, { redirect: 'manual' });
+  check(forgedLink.status === 303 && forgedLink.headers.get('location') === '/login?email=invalide', 'Lien de confirmation falsifié refusé');
+  const confirmed = await fetch(confirmLink, { redirect: 'manual' });
+  check(confirmed.status === 303 && confirmed.headers.get('location') === '/app?email=confirme', 'Lien de confirmation → adresse confirmée');
+  check((await json(await me('/v1/auth/me'))).merchant.email_verified === true, 'Le compte affiche maintenant « e-mail confirmé »');
+  await sleep(100);
+  check(/à fatou@test\.sn · « Votre compte YombalPay est prêt »/.test(serverLog), "E-mail de bienvenue envoyé après confirmation");
+  const conf = await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: FK, body: JSON.stringify({ amount: 5000 }) });
+  check(conf.status === 201, 'E-mail confirmé : création de paiement acceptée');
+  check((await json(await me('/v1/auth/resend-confirmation', { method: 'POST' }))).already === true, 'Renvoi du lien inutile une fois confirmé');
+
+  // ── Vérification de l'entreprise (KYB) ────────────────────────────────────
+  const kyb = { legal_name: 'Boutique Fatou SUARL', legal_form: 'suarl', sector: 'artisanat', ninea: '0012345 2G3', rccm: 'SN-DKR-2024-B-12345',
+    representative_name: 'Fatou Diop', address: 'Rue 10, Médina', city: 'Dakar', payout_network: 'wave', payout_phone: '77 123 45 67' };
+  check((await json(await me('/v1/verification'))).status === 'none', 'Vérification : aucune demande au départ');
+  const badKyb = await me('/v1/verification', { method: 'POST', body: { ...kyb, ninea: '12', payout_phone: '33 800 00 00' } });
+  const badKybj = await json(badKyb);
+  check(badKyb.status === 422 && badKybj.error.fields?.ninea && badKybj.error.fields?.payout_phone, 'Dossier invalide refusé (NINEA, numéro mobile money)');
+  const sent = await me('/v1/verification', { method: 'POST', body: kyb });
+  const sentj = await json(sent);
+  check(sent.status === 201 && sentj.status === 'pending' && sentj.details.ninea === '00123452G3' && sentj.details.payout_phone === '771234567', 'Dossier envoyé → « en cours de vérification »');
+  check((await me('/v1/verification', { method: 'POST', body: kyb })).status === 409, 'Dossier déjà en cours : second envoi refusé (409)');
+  check((await me('/v1/admin/verifications')).status === 403, "Un marchand n'accède pas à l'administration");
+
+  const adm = browser();
+  await adm('/v1/auth/signup', { method: 'POST', body: { name: 'YombalPay Admin', username: 'admin-yp', email: 'admin@test.sn', password: 'admin2026x' } });
+  check((await json(await adm('/v1/auth/me'))).merchant.is_admin === true, 'ADMIN_EMAILS : le compte administrateur est reconnu');
+  const queue = await json(await adm('/v1/admin/verifications'));
+  const fatouId0 = suj.merchant.id;
+  check(queue.data?.some((v) => v.id === fatouId0 && v.verification.legal_name === 'Boutique Fatou SUARL'), "L'administrateur voit la demande de Boutique Fatou");
+  await adm(`/v1/admin/verifications/${fatouId0}`, { method: 'POST', body: { decision: 'reject', note: 'NINEA illisible' } });
+  const rej = await json(await me('/v1/verification'));
+  check(rej.status === 'rejected' && rej.note === 'NINEA illisible', 'Demande refusée : le marchand voit le motif');
+  check((await me('/v1/verification', { method: 'POST', body: kyb })).status === 201, 'Après un refus, le dossier peut être renvoyé');
+  check((await adm(`/v1/admin/verifications/${fatouId0}`, { method: 'POST', body: { decision: 'approve' } })).status === 200, "L'administrateur approuve le dossier");
+  check((await adm(`/v1/admin/verifications/${fatouId0}`, { method: 'POST', body: { decision: 'approve' } })).status === 404, 'Décision déjà prise : seconde décision refusée');
+  check((await json(await me('/v1/auth/me'))).merchant.verification.status === 'verified', 'Entreprise vérifiée dans le compte du marchand');
+  await sleep(100);
+  check(/à fatou@test\.sn · « Votre compte YombalPay est activé »/.test(serverLog), 'E-mail « compte activé » envoyé au marchand');
+
+  // ── Connexion avec Google (serveur Google simulé) ─────────────────────────
+  check((await json(await fetch(`${API}/v1/auth/options`))).google === true, 'Bouton Google proposé quand GOOGLE_CLIENT_ID est configuré');
+  const google = async (claims, { state: forceState } = {}) => {
+    const jar = cookieJar();
+    const start = await jar(`/v1/auth/google`);
+    const auth = new URL(start.headers.get('location'));
+    googleNext = { iss: 'https://accounts.google.com', aud: GOOGLE_CLIENT_ID, exp: Math.floor(Date.now() / 1000) + 300, nonce: auth.searchParams.get('nonce'), email_verified: true, ...claims };
+    const cbk = await jar(`/v1/auth/google/callback?code=code_test&state=${forceState ?? auth.searchParams.get('state')}`);
+    return { jar, start, auth, cbk, to: cbk.headers.get('location') };
+  };
+  const g0 = await google({ sub: 'g-awa', email: 'awa@gmail.com', name: 'Awa Sarr' });
+  check(g0.start.status === 303 && g0.auth.host === 'accounts.google.com' && g0.auth.searchParams.get('client_id') === GOOGLE_CLIENT_ID, 'Google : redirection vers accounts.google.com');
+  check(g0.to === '/signup?google=1', 'Nouveau compte Google → choix du nom du commerce');
+  check((await json(await g0.jar('/v1/auth/google/pending'))).email === 'awa@gmail.com', 'Profil Google gardé le temps de l’inscription');
+  const gs = await g0.jar('/v1/auth/google/signup', { method: 'POST', body: { name: 'Couture Awa', username: 'awa' } });
+  const gsj = await json(gs);
+  check(gs.status === 201 && gsj.secret_key?.startsWith('sk_') && gsj.merchant.email_verified && gsj.merchant.google_linked && !gsj.merchant.has_password, 'Inscription Google : e-mail déjà confirmé, sans mot de passe');
+  check((await g0.jar('/v1/checkouts', { method: 'POST', body: { amount: 3000 } })).status === 201, 'Compte Google : encaissement possible tout de suite');
+  check((await g0.jar('/v1/auth/password', { method: 'POST', body: { new_password: 'couture2026' } })).status === 200, 'Compte Google : premier mot de passe choisi sans ancien mot de passe');
+  check((await json(await g0.jar('/v1/auth/me'))).merchant.has_password === true, 'Le mot de passe protège désormais retraits et épargne');
+  const g1 = await google({ sub: 'g-awa', email: 'awa@gmail.com' });
+  check(g1.to === '/app' && (await json(await g1.jar('/v1/auth/me'))).merchant.username === 'awa', 'Compte Google existant → connexion directe');
+  const g2 = await google({ sub: 'g-fatou', email: 'fatou@test.sn' });
+  check(g2.to === '/app' && (await json(await g2.jar('/v1/auth/me'))).merchant.google_linked === true, 'Même adresse qu’un compte existant → compte lié à Google');
+  const g3 = await google({ sub: 'g-x', email: 'x@gmail.com', email_verified: false });
+  check(g3.to?.startsWith('/login?erreur='), 'Adresse Google non vérifiée refusée');
+  const g4 = await google({ sub: 'g-y', email: 'y@gmail.com' }, { state: 'etat-invente' });
+  check(g4.to?.startsWith('/login?erreur='), 'Google : état (state) falsifié refusé');
+  const g5 = await google({ sub: 'g-z', email: 'z@gmail.com', aud: 'autre-client' });
+  check(g5.to?.startsWith('/login?erreur='), 'Google : jeton destiné à une autre application refusé');
+
+  // ── Argent réel : réservé aux entreprises vérifiées ───────────────────────
+  // Autres passerelles sur la même base, hors mode démo ; l'environnement vient du faux GET /api/whoami
+  // (le préfixe « prd: » existe aussi sur les secrets sandbox : il ne doit rien décider)
+  const realGateway = async (port, environment) => {
+    bitnobEnv = environment;
+    const p = spawn('node', ['server/src/index.js'], {
+      env: { ...env, PORT: String(port), PUBLIC_URL: `http://localhost:${port}`, DEMO_MODE: 'false', BITNOB_CLIENT_ID: 'test', BITNOB_CLIENT_SECRET: 'prd:test', BITNOB_BASE_URL: 'http://localhost:4199', SEED_DEMO: 'false', PAYOUT_MODE: 'bitnob' },
+    });
+    procs.push(p);
+    for (let i = 0; i < 40 && !(await fetch(`http://localhost:${port}/v1/health`).then((r) => r.ok, () => false)); i++) await sleep(250);
+    await sleep(300); // le temps de lire whoami
+    return p;
+  };
+  const LIVE = 'http://localhost:3101';
+  const live = await realGateway(3101, 'production');
+  const awaKey = { Authorization: `Bearer ${gsj.secret_key}`, 'Content-Type': 'application/json' };
+  const liveUnverified = await fetch(`${LIVE}/v1/checkouts`, { method: 'POST', headers: awaKey, body: JSON.stringify({ amount: 5000 }) });
+  check(liveUnverified.status === 403 && (await json(liveUnverified)).error.code === 'merchant_unverified', 'Argent réel : entreprise non vérifiée, encaissement refusé (403)');
+  const liveVerified = await fetch(`${LIVE}/v1/checkouts`, { method: 'POST', headers: FK, body: JSON.stringify({ amount: 5000 }) });
+  check(liveVerified.status !== 403, `Argent réel : entreprise vérifiée, la demande part chez Bitnob (${liveVerified.status})`);
+  const awaMobile = await json(await fetch(`${LIVE}/v1/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'awa@gmail.com', password: 'couture2026', client: 'mobile' }) }));
+  const livePayout = await fetch(`${LIVE}/v1/payouts`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${awaMobile.token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount: 2000, network: 'wave', phone: '771234567', account_name: 'Awa Sarr', password: 'couture2026' }),
+  });
+  check(livePayout.status === 403, 'Argent réel : entreprise non vérifiée, retrait refusé (403)');
+  live.kill();
+  const sandbox = await realGateway(3102, 'sandbox');
+  const sbx = await fetch('http://localhost:3102/v1/checkouts', { method: 'POST', headers: awaKey, body: JSON.stringify({ amount: 5000 }) });
+  check(sbx.status !== 403, `Bitnob sandbox (secret « prd: ») : entreprise non vérifiée, test autorisé (${sbx.status})`);
+  sandbox.kill();
 
   // ── Adresse Lightning (LNURL-pay) ─────────────────────────────────────────
   const lnp = await json(await fetch(`${API}/.well-known/lnurlp/fatou`));
@@ -352,7 +500,7 @@ try {
   const go = await fetch(link.url, { redirect: 'manual' });
   check(go.status === 302 && go.headers.get('location').startsWith('/pay/chk_'), 'Lien de paiement → nouvelle page de paiement');
 
-  for (const p of ['/', '/login', '/signup', '/app', '/app/caisse', `/pay/${id}`, `/recu/${id}`, '/@fatou', '/docs', '/sdk/yombalpay.js', '/manifest.webmanifest']) {
+  for (const p of ['/', '/login', '/signup', '/app', '/app/caisse', '/app/activation', '/app/admin', `/pay/${id}`, `/recu/${id}`, '/@fatou', '/docs', '/sdk/yombalpay.js', '/manifest.webmanifest']) {
     check((await fetch(API + p)).status === 200, `GET ${p}`);
   }
   const headers = (await fetch(`${API}/`)).headers;
@@ -363,6 +511,7 @@ try {
   failures++;
 } finally {
   procs.forEach((p) => p.kill());
+  googleStub.close();
   console.log(failures ? `\n${failures} échec(s)` : '\nTout est vert ✔');
   process.exit(failures ? 1 : 0);
 }

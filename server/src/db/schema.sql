@@ -252,3 +252,22 @@ ALTER TABLE merchants ADD COLUMN IF NOT EXISTS savings_goal_xof bigint;
 
 -- ── v6 : code de retrait (4 à 6 chiffres), accepté à la place du mot de passe pour retirer ou débloquer l'épargne ──
 ALTER TABLE merchants ADD COLUMN IF NOT EXISTS payout_pin_hash text;
+
+-- ── v7 : comptes vérifiés (connexion Google, e-mail confirmé, vérification de l'entreprise) ─────
+-- Un compte créé avec Google n'a pas de mot de passe tant que le marchand n'en choisit pas un.
+ALTER TABLE merchants ALTER COLUMN password_hash DROP NOT NULL;
+ALTER TABLE merchants ADD COLUMN IF NOT EXISTS google_sub text UNIQUE;
+-- Les comptes qui existaient avant cette version sont considérés confirmés (valeur posée une seule fois,
+-- à la création de la colonne) ; les nouveaux comptes partent de NULL.
+ALTER TABLE merchants ADD COLUMN IF NOT EXISTS email_verified_at timestamptz DEFAULT now();
+ALTER TABLE merchants ALTER COLUMN email_verified_at DROP DEFAULT;
+ALTER TABLE merchants ADD COLUMN IF NOT EXISTS verification_status text NOT NULL DEFAULT 'none';
+ALTER TABLE merchants DROP CONSTRAINT IF EXISTS merchants_verification_status_check;
+ALTER TABLE merchants ADD CONSTRAINT merchants_verification_status_check
+  CHECK (verification_status IN ('none', 'pending', 'verified', 'rejected'));
+-- Dossier de l'entreprise (KYB) : { legal_name, legal_form, sector, ninea, rccm, representative_name, address, city,
+-- payout_network, payout_phone }, validé côté serveur avant enregistrement
+ALTER TABLE merchants ADD COLUMN IF NOT EXISTS verification jsonb;
+ALTER TABLE merchants ADD COLUMN IF NOT EXISTS verification_submitted_at timestamptz;
+ALTER TABLE merchants ADD COLUMN IF NOT EXISTS verification_note text;
+CREATE INDEX IF NOT EXISTS merchants_verification_idx ON merchants(verification_status, verification_submitted_at);
