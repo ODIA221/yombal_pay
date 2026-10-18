@@ -104,6 +104,8 @@ const OAUTH_COOKIE = 'yp_oauth';
 const googleRedirectUri = () => `${config.publicUrl}/v1/auth/google/callback`;
 const shortCookie = (res, name, value, ttlMs) =>
   res.cookie(name, value, { httpOnly: true, sameSite: 'lax', secure: config.security.cookieSecure, maxAge: ttlMs, path: '/v1/auth' });
+// Après connexion : la page d'accueil, qui fige l'historique pour que « Retour » n'y ramène pas Google
+const AFTER_LOGIN = '/?connecte=1';
 const loginError = (res, message) => res.redirect(303, `/login?erreur=${encodeURIComponent(message)}`);
 
 authRouter.get('/google', (_req, res) => {
@@ -132,7 +134,7 @@ authRouter.get('/google/callback', async (req, res, next) => {
       const s = await createSession(m.id, req);
       setSessionCookie(res, s.token, s.expires);
       await audit(m.id, 'login_google', req);
-      return res.redirect(303, '/app');
+      return res.redirect(303, AFTER_LOGIN);
     }
     if (await staffByEmail(profile.email)) return loginError(res, 'Les caissiers se connectent avec leur e-mail et leur mot de passe.');
     // Nouveau marchand : compte créé tout de suite, au nom du profil Google (modifiable dans Réglages).
@@ -142,7 +144,7 @@ authRouter.get('/google/callback', async (req, res, next) => {
     const s = await createSession(m.id, req);
     setSessionCookie(res, s.token, s.expires);
     await audit(m.id, 'signup_google', req);
-    res.redirect(303, '/app');
+    res.redirect(303, AFTER_LOGIN);
   } catch (err) {
     if (err instanceof GoogleAuthError) return loginError(res, err.message);
     // Même compte créé au même instant par un double clic : on renvoie vers la connexion Google

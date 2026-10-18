@@ -81,6 +81,16 @@
   window.addEventListener("load", restoreScroll);
   window.addEventListener("pageshow", function (e) { if (e.persisted) restoreScroll(); });
 
+  /* ---------- Retour de connexion (/?connecte=1) ---------- */
+  // Adresse nettoyée, puis une étape d'historique en plus : « Retour » reste sur l'accueil au lieu de
+  // rouvrir le formulaire de connexion ou la page Google.
+  if (/[?&]connecte=1/.test(location.search)) {
+    try {
+      history.replaceState(null, "", "/" + location.hash);
+      history.pushState({ ypHome: true }, "", "/" + location.hash);
+    } catch (e) {}
+  }
+
   /* ---------- Marchand connecté : avatar dans la barre ---------- */
   fetch("/v1/auth/me", { cache: "no-store", credentials: "same-origin" })
     .then(function (r) { return r.ok ? r.json() : null; })

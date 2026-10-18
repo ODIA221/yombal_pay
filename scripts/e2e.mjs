@@ -280,7 +280,7 @@ try {
   };
   const g0 = await google({ sub: 'g-awa', email: 'awa@gmail.com', name: 'Awa Sarr' });
   check(g0.start.status === 303 && g0.auth.host === 'accounts.google.com' && g0.auth.searchParams.get('client_id') === GOOGLE_CLIENT_ID, 'Google : redirection vers accounts.google.com');
-  check(g0.to === '/app', 'Nouveau compte Google → directement sur l’accueil de l’espace marchand');
+  check(g0.to === '/?connecte=1', 'Nouveau compte Google → page d’accueil');
   const gme = (await json(await g0.jar('/v1/auth/me'))).merchant;
   check(gme?.name === 'Awa Sarr' && gme.username === 'awasarr' && gme.email_verified && gme.google_linked && !gme.has_password, 'Compte Google créé au nom du profil : e-mail déjà confirmé, sans mot de passe');
   const gsj = { secret_key: (await json(await g0.jar('/v1/api-keys', { method: 'POST', body: { label: 'Site' } }))).key };
@@ -289,9 +289,9 @@ try {
   check((await g0.jar('/v1/auth/password', { method: 'POST', body: { new_password: 'couture2026' } })).status === 200, 'Compte Google : premier mot de passe choisi sans ancien mot de passe');
   check((await json(await g0.jar('/v1/auth/me'))).merchant.has_password === true, 'Le mot de passe protège désormais retraits et épargne');
   const g1 = await google({ sub: 'g-awa', email: 'awa@gmail.com' });
-  check(g1.to === '/app' && (await json(await g1.jar('/v1/auth/me'))).merchant.username === 'awasarr', 'Compte Google existant → connexion directe');
+  check(g1.to === '/?connecte=1' && (await json(await g1.jar('/v1/auth/me'))).merchant.username === 'awasarr', 'Compte Google existant → connexion directe');
   const g2 = await google({ sub: 'g-fatou', email: 'fatou@test.sn' });
-  check(g2.to === '/app' && (await json(await g2.jar('/v1/auth/me'))).merchant.google_linked === true, 'Même adresse qu’un compte existant → compte lié à Google');
+  check(g2.to === '/?connecte=1' && (await json(await g2.jar('/v1/auth/me'))).merchant.google_linked === true, 'Même adresse qu’un compte existant → compte lié à Google');
   const g3 = await google({ sub: 'g-x', email: 'x@gmail.com', email_verified: false });
   check(g3.to?.startsWith('/login?erreur='), 'Adresse Google non vérifiée refusée');
   const g4 = await google({ sub: 'g-y', email: 'y@gmail.com' }, { state: 'etat-invente' });

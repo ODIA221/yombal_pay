@@ -47,10 +47,21 @@ function GoogleButton() {
   );
 }
 
+const AFTER_LOGIN = '/?connecte=1';
+
+// Sur les pages de connexion et d'inscription, « Retour » ramène à la page d'accueil
+function useBackToHome() {
+  useEffect(() => {
+    window.history.pushState({ ypBack: true }, '', window.location.href);
+    const onPop = () => window.location.replace('/');
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+}
+
 export function Login() {
-  const { merchant, setMerchant } = useAuth();
+  const { merchant } = useAuth();
   const [params] = useSearchParams();
-  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   // Erreur renvoyée par la connexion Google, ou lien de confirmation d'e-mail expiré
@@ -58,9 +69,11 @@ export function Login() {
     params.get('erreur')?.slice(0, 200) || (params.get('email') === 'invalide' ? 'Ce lien de confirmation est invalide ou a expiré. Connectez-vous pour en recevoir un nouveau.' : ''),
   );
   const [busy, setBusy] = useState(false);
-  const next = params.get('next')?.startsWith('/app') ? params.get('next') : '/app';
+  // Renvoyé ici depuis une page protégée : on y retourne ; sinon, page d'accueil
+  const next = params.get('next')?.startsWith('/app') ? params.get('next') : null;
+  useBackToHome();
 
-  if (merchant) return <Navigate to={next} replace />;
+  if (merchant) return <Navigate to={next || '/'} replace />;
 
   async function submit(e) {
     e.preventDefault();
@@ -68,8 +81,10 @@ export function Login() {
     setError('');
     try {
       const r = await api('/v1/auth/login', { method: 'POST', body: { email, password } });
-      setMerchant(r.merchant);
-      navigate(next, { replace: true });
+      // Page rechargée (la session est lue au chargement) ; replace : la connexion sort de l'historique,
+      // « Retour » ne la rouvre pas
+      window.location.replace(r.merchant.staff ? '/app/caisse' : next || AFTER_LOGIN);
+      return;
     } catch (err) {
       setError(err.message);
     } finally {
@@ -107,6 +122,7 @@ export function Signup() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [secretKey, setSecretKey] = useState(null);
+  useBackToHome();
 
   if (merchant && !secretKey) return <Navigate to="/app" replace />;
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
