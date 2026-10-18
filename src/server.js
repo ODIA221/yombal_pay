@@ -562,6 +562,11 @@ try {
   console.error("         Avez-vous lancé supabase/002_merchants.sql dans Supabase ?");
 }
 
-app.listen(config.port, () => {
-  console.log(`YombalPay écoute sur http://localhost:${config.port}`);
-});
+// Sur Vercel, la plateforme appelle l'application exportée : pas de listen.
+if (!process.env.VERCEL) {
+  app.listen(config.port, () => {
+    console.log(`YombalPay écoute sur http://localhost:${config.port}`);
+  });
+}
+
+export default app;
