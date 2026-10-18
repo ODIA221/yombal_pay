@@ -34,8 +34,22 @@ async function renameWaxHistory(merchantId) {
   });
 }
 
+// Valeurs par défaut écrites dans le code (dépôt public) : connues de tous, donc interdites en production
+const PUBLIC_DEFAULTS = { apiKey: 'sk_test_acs_demo_2026', webhookSecret: 'whsec_acs_demo_2026', payoutPin: '2026' };
+
 export async function seedDemo() {
   const d = { ...config.demoMerchant };
+  if (config.isProduction) {
+    const known = Object.keys(PUBLIC_DEFAULTS).filter((k) => k !== 'payoutPin' && d[k] === PUBLIC_DEFAULTS[k]);
+    if (known.length) {
+      console.warn(
+        `⚠️  Compte démo non créé : ${known.join(', ')} garde la valeur par défaut du code public. ` +
+          'Renseignez DEMO_MERCHANT_KEY et DEMO_MERCHANT_WEBHOOK_SECRET, ou SEED_DEMO=false.',
+      );
+      return null;
+    }
+    if (d.payoutPin === PUBLIC_DEFAULTS.payoutPin) d.payoutPin = ''; // pas de code de retrait connu de tous
+  }
   let generated = false;
   if (!d.password) {
     d.password = randomToken(9);
@@ -69,11 +83,13 @@ export async function seedDemo() {
   // Code de retrait du compte démo, aligné sur le .env (2026 par défaut)
   if (/^\d{4,6}$/.test(d.payoutPin) && !(m.payout_pin_hash && (await verifyPassword(d.payoutPin, m.payout_pin_hash))))
     m = await one('UPDATE merchants SET payout_pin_hash = $2 WHERE id = $1 RETURNING *', [m.id, await hashPassword(d.payoutPin)]);
-  // Le compte démo est confirmé et vérifié : la boutique de démo encaisse sans étape d'activation
+  // Le compte démo est confirmé ; en mode démo il est aussi « entreprise vérifiée » (argent fictif). Hors démo,
+  // il passe par la vérification comme les autres : il ne contourne jamais le contrôle avant l'argent réel.
   await one(
-    `UPDATE merchants SET email_verified_at = COALESCE(email_verified_at, now()), verification_status = 'verified',
-       verification = COALESCE(verification, $2) WHERE id = $1 RETURNING 1`,
-    [m.id, { legal_name: d.name, legal_form: 'ei', sector: 'artisanat', city: 'Dakar' }],
+    `UPDATE merchants SET email_verified_at = COALESCE(email_verified_at, now()),
+       verification_status = CASE WHEN $3 THEN 'verified' ELSE verification_status END,
+       verification = CASE WHEN $3 THEN COALESCE(verification, $2) ELSE verification END WHERE id = $1 RETURNING 1`,
+    [m.id, { legal_name: d.name, legal_form: 'ei', sector: 'artisanat', city: 'Dakar' }, config.demoMode],
   );
   await createApiKey(m.id, 'Boutique de démo', { rawKey: d.apiKey });
   // Seule la clé de démo actuelle reste active (l'ancienne clé « waxco » est révoquée)

@@ -16,7 +16,13 @@ export function googleAuthUrl({ redirectUri, state, nonce }) {
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 }
 
-export class GoogleAuthError extends Error {}
+// code : affiché par la page de connexion (/login?erreur=<code>), jamais le texte de l'erreur
+export class GoogleAuthError extends Error {
+  constructor(message, code = 'google_refus') {
+    super(message);
+    this.code = code;
+  }
+}
 
 // Échange le code contre un id_token et renvoie le profil vérifié.
 // Le jeton vient directement de Google, en HTTPS et avec notre secret client : on peut lire son contenu
@@ -48,7 +54,7 @@ export async function googleProfileFromCode({ code, redirectUri, nonce }) {
   if (!(payload.exp * 1000 > Date.now())) throw new GoogleAuthError('Jeton Google expiré, réessayez.');
   if (payload.nonce !== nonce) throw new GoogleAuthError('Jeton Google invalide (nonce).');
   if (!payload.sub || !payload.email || payload.email_verified !== true)
-    throw new GoogleAuthError("Votre adresse Google n'est pas vérifiée. Utilisez l'inscription par e-mail.");
+    throw new GoogleAuthError("Votre adresse Google n'est pas vérifiée. Utilisez l'inscription par e-mail.", 'google_email');
 
   return { sub: String(payload.sub), email: String(payload.email).toLowerCase(), name: payload.name || payload.given_name || '' };
 }

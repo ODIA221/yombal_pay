@@ -9,7 +9,9 @@ import { confirmEmail, verificationReceivedEmail, verificationRequestEmail, veri
 
 const CONFIRM_TTL_MS = 24 * 3_600_000;
 
-export const isAdmin = (m) => Boolean(m && !m.staff_id && config.adminEmails.includes(String(m.email).toLowerCase()));
+// Administrateur : adresse listée dans ADMIN_EMAILS ET confirmée. Sans la confirmation, n'importe qui pourrait
+// s'inscrire avec l'adresse de l'admin avant lui et obtenir ses droits.
+export const isAdmin = (m) => Boolean(m && !m.staff_id && m.email_verified_at && config.adminEmails.includes(String(m.email).toLowerCase()));
 export const emailVerified = (m) => Boolean(m?.email_verified_at);
 
 const err = (message, status, code) => Object.assign(new Error(message), { status, code });

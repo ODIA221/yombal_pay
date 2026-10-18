@@ -38,6 +38,7 @@ export const STATUS = {
 
 export const SOURCE = {
   api: 'Site web (API)',
+  button: 'Bouton de paiement',
   pos: 'Caisse',
   dashboard: 'Tableau de bord',
   payment_link: 'Lien de paiement',

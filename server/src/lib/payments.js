@@ -57,7 +57,8 @@ export function publicCheckout(c) {
     created_at: c.created_at,
     paid_at: c.paid_at,
     demo: c.demo,
-    can_simulate: canSimulate(c),
+    // Vue publique : seule la démo est simulable par tous ; une facture sandbox l'est par son marchand (GET /v1/checkouts/:id)
+    can_simulate: Boolean(c.demo) && canSimulate(c),
     pay_asset: c.pay_asset ?? 'BTC',
     // Preuve publique pour le reçu : empreinte de la facture Lightning, ou hash des transactions blockchain
     proof:
@@ -71,7 +72,6 @@ export function publicCheckout(c) {
       xof: savingsXof(c.amount_xof, c.amount_sats ? (c.fee_sats * c.amount_xof) / c.amount_sats : 0),
       benchmark_pct: config.savingsBenchmarkBps / 100,
     },
-    metadata: c.metadata ?? {},
   };
 }
 
@@ -95,6 +95,8 @@ export const privateCheckout = (c) => ({
   payment_hash: c.payment_hash,
   customer_email: c.customer_email,
   payer_note: c.payer_note,
+  // Données du marchand (client, commande…) : jamais dans la vue publique, lisible par qui a le lien
+  metadata: c.metadata ?? {},
 });
 
 export const getCheckout = (id) => one(`${SELECT} WHERE c.id = $1`, [id]);
@@ -130,8 +132,14 @@ export async function createCheckout(merchant, input) {
   const reference = String(input.reference || newId('ord')).slice(0, 80);
 
   const existing = await one(`${SELECT} WHERE c.merchant_id = $1 AND c.reference = $2`, [merchant.id, reference]);
-  // Idempotence côté marchand : même référence → même paiement (pas de doublon)
-  if (existing && existing.status !== 'expired') return { checkout: existing, created: false };
+  // La clé publique (pk_…, source « button ») est connue de tous : elle ne doit jamais prendre la référence
+  // d'une commande du marchand, sinon un paiement de 100 FCFA pourrait « régler » une commande de 65 000 FCFA.
+  const button = (s) => s === 'button';
+  if (existing && button(input.source) && !button(existing.source))
+    throw Object.assign(new Error('Cette référence est déjà utilisée par une commande du marchand.'), { status: 409, code: 'reference_taken' });
+  // Idempotence côté marchand : même référence → même paiement (pas de doublon). Une référence réservée par la
+  // clé publique ne s'impose jamais au serveur du marchand : elle est libérée (voir plus bas).
+  if (existing && existing.status !== 'expired' && button(input.source) === button(existing.source)) return { checkout: existing, created: false };
 
   const rate = await getXofPerBtc();
   let amountSats;
@@ -166,8 +174,8 @@ export async function createCheckout(merchant, input) {
   }
 
   const row = await tx(async (client) => {
-    // Une ancienne tentative expirée libère sa référence
-    if (existing) await client.query(`UPDATE checkouts SET reference = reference || '#expired-' || id WHERE id = $1`, [existing.id]);
+    // Une ancienne tentative expirée, ou réservée par la clé publique, libère sa référence
+    if (existing) await client.query(`UPDATE checkouts SET reference = reference || '#' || status || '-' || id WHERE id = $1`, [existing.id]);
     return one(
       `INSERT INTO checkouts (id, merchant_id, reference, bitnob_reference, description, amount_xof, amount_sats, fee_sats, xof_per_btc,
          rate_source, rate_fixed, invoice_id, invoice_request, payment_hash, expires_at, return_url, webhook_url, customer_email, payer_note,

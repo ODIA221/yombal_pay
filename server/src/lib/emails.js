@@ -35,6 +35,21 @@ export function confirmEmail({ name, link }) {
   };
 }
 
+export function resetPasswordEmail({ name, link }) {
+  return {
+    subject: 'Réinitialisez votre mot de passe',
+    link,
+    html: layout({
+      title: 'Nouveau mot de passe',
+      body:
+        p(`${esc(name)}, vous avez demandé à changer le mot de passe de votre compte YombalPay.`) +
+        p("Ce lien est valable 1 heure et ne fonctionne qu'une fois. Si vous n'êtes pas à l'origine de la demande, ignorez cet e-mail : votre mot de passe ne change pas."),
+      button: { href: link, label: 'Choisir un nouveau mot de passe' },
+    }),
+    text: `${name}, choisissez un nouveau mot de passe YombalPay (lien valable 1 h, une seule fois) :\n${link}\nSi vous n'êtes pas à l'origine de la demande, ignorez cet e-mail.`,
+  };
+}
+
 export function welcomeEmail({ name, appUrl, activationUrl }) {
   return {
     subject: 'Votre compte YombalPay est prêt',

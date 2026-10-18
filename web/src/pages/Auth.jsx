@@ -59,15 +59,32 @@ function useBackToHome() {
   }, []);
 }
 
+// Erreurs que le serveur peut renvoyer à la page de connexion (/login?erreur=<code>). Seuls ces textes s'affichent :
+// un lien piégé ne peut pas faire écrire un faux message sur la page.
+const LOGIN_ERRORS = {
+  google_config: "La connexion avec Google n'est pas encore configurée.",
+  google_annule: 'Connexion Google annulée.',
+  google_expire: 'La connexion Google a expiré. Réessayez.',
+  google_email: "Votre adresse Google n'est pas vérifiée. Utilisez l'inscription par e-mail.",
+  google_refus: "La connexion Google n'a pas abouti. Réessayez.",
+  caissier: 'Les caissiers se connectent avec leur e-mail et leur mot de passe.',
+};
+
 export function Login() {
   const { merchant } = useAuth();
   const [params] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   // Erreur renvoyée par la connexion Google, ou lien de confirmation d'e-mail expiré
+  const code = params.get('erreur');
   const [error, setError] = useState(
-    params.get('erreur')?.slice(0, 200) || (params.get('email') === 'invalide' ? 'Ce lien de confirmation est invalide ou a expiré. Connectez-vous pour en recevoir un nouveau.' : ''),
+    code
+      ? LOGIN_ERRORS[code] || "La connexion n'a pas abouti. Réessayez."
+      : params.get('email') === 'invalide'
+        ? 'Ce lien de confirmation est invalide ou a expiré. Connectez-vous pour en recevoir un nouveau.'
+        : '',
   );
+  const notice = params.get('motdepasse') === 'change' ? 'Mot de passe enregistré. Connectez-vous avec le nouveau.' : '';
   const [busy, setBusy] = useState(false);
   // Renvoyé ici depuis une page protégée : on y retourne ; sinon, page d'accueil
   const next = params.get('next')?.startsWith('/app') ? params.get('next') : null;
@@ -102,6 +119,10 @@ export function Login() {
         <Field label="Mot de passe">
           <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
+        <Link to="/forgot" className="auth-forgot">
+          Mot de passe oublié ?
+        </Link>
+        {notice && !error && <p className="callout ok">{notice}</p>}
         {error && <p className="form-error">{error}</p>}
         <button className="btn primary lg wide" disabled={busy}>
           {busy ? 'Connexion…' : 'Se connecter'}
@@ -194,6 +215,97 @@ export function Signup() {
       </form>
       <p className="auth-switch">
         Déjà inscrit ? <Link to="/login">Se connecter</Link>
+      </p>
+    </AuthShell>
+  );
+}
+
+// Mot de passe oublié : le serveur répond pareil que l'adresse ait un compte ou non
+export function Forgot() {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  useBackToHome();
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      await api('/v1/auth/forgot', { method: 'POST', body: { email } });
+      setSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <AuthShell title="Mot de passe oublié" subtitle="Recevez un lien pour choisir un nouveau mot de passe.">
+      {sent ? (
+        <div className="stack">
+          <p className="callout ok">Si un compte existe avec {email}, un lien vient d'y être envoyé. Il est valable 1 heure.</p>
+          <Link to="/login" className="btn ghost lg wide">
+            Retour à la connexion
+          </Link>
+        </div>
+      ) : (
+        <form className="stack" onSubmit={submit}>
+          <Field label="E-mail du compte">
+            <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Field>
+          {error && <p className="form-error">{error}</p>}
+          <button className="btn primary lg wide" disabled={busy}>
+            {busy ? 'Envoi…' : 'Recevoir le lien'}
+          </button>
+        </form>
+      )}
+      {!sent && (
+        <p className="auth-switch">
+          <Link to="/login">Retour à la connexion</Link>
+        </p>
+      )}
+    </AuthShell>
+  );
+}
+
+// Lien reçu par e-mail : nouveau mot de passe (le lien ne sert qu'une fois)
+export function Reset() {
+  const [params] = useSearchParams();
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(params.get('token') ? '' : 'Lien incomplet. Demandez-en un nouveau.');
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      await api('/v1/auth/reset', { method: 'POST', body: { token: params.get('token'), password } });
+      window.location.replace('/login?motdepasse=change');
+      return;
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <AuthShell title="Nouveau mot de passe" subtitle="Choisissez le mot de passe de votre compte YombalPay.">
+      <form className="stack" onSubmit={submit}>
+        <Field label="Nouveau mot de passe" hint="8 caractères minimum, avec au moins une lettre et un chiffre.">
+          <input type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+        </Field>
+        {error && <p className="form-error">{error}</p>}
+        <button className="btn primary lg wide" disabled={busy || !params.get('token')}>
+          {busy ? 'Enregistrement…' : 'Enregistrer le mot de passe'}
+        </button>
+      </form>
+      <p className="auth-switch">
+        <Link to="/forgot">Demander un nouveau lien</Link>
       </p>
     </AuthShell>
   );

@@ -1,6 +1,7 @@
 // Boutique de démo « African Costume Shop » : un vrai site site marchand qui encaisse via YombalPay.
 // Toute l'intégration tient dans les blocs marqués ▶ YOMBALPAY.
 import 'dotenv/config';
+import crypto from 'node:crypto';
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -164,7 +165,8 @@ app.post('/buy/:id', async (req, res) => {
   const product = PRODUCTS.find((p) => p.id === req.params.id);
   if (!product) return res.status(404).send('Produit introuvable');
   const size = SIZES.includes(req.body?.size) ? req.body.size : null;
-  const ref = `ACS-${Date.now().toString(36).toUpperCase()}`;
+  // Référence imprévisible : personne ne peut deviner le numéro de la prochaine commande
+  const ref = `ACS-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
   try {
     const checkout = await yombalpay.createCheckout({
       amount: product.price,
@@ -193,7 +195,10 @@ app.post('/webhooks/yombalpay', express.raw({ type: '*/*' }), (req, res) => {
   }
   if (event.type === 'checkout.paid') {
     const order = orders[event.data.reference];
-    if (order && order.status !== 'Payée') {
+    // Toujours comparer le paiement à la commande : même paiement que celui créé pour elle, même montant
+    const matches = order && event.data.id === order.checkoutId && event.data.amount === order.amount && event.data.currency === 'XOF';
+    if (order && !matches) console.warn(`Webhook ignoré pour ${order.ref} : paiement ${event.data.id} de ${event.data.amount} FCFA, attendu ${order.amount} FCFA`);
+    if (matches && order.status !== 'Payée') {
       order.status = 'Payée';
       order.paidAt = event.data.paid_at;
       order.sats = event.data.amount_sats;

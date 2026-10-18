@@ -258,7 +258,12 @@ try {
 
   const adm = browser();
   await adm('/v1/auth/signup', { method: 'POST', body: { name: 'YombalPay Admin', email: 'admin@test.sn', password: 'admin2026x' } });
-  check((await json(await adm('/v1/auth/me'))).merchant.is_admin === true, 'ADMIN_EMAILS : le compte administrateur est reconnu');
+  // Faille corrigée : s'inscrire avec l'adresse de l'admin ne suffit pas, il faut la confirmer
+  check((await json(await adm('/v1/auth/me'))).merchant.is_admin === false && (await adm('/v1/admin/verifications')).status === 403,
+    'Adresse de l’admin non confirmée : aucun droit d’administration');
+  await sleep(100);
+  await fetch(serverLog.match(/à admin@test\.sn · « Confirmez[^\n]*\n\s+Lien : (\S+)/)[1], { redirect: 'manual' });
+  check((await json(await adm('/v1/auth/me'))).merchant.is_admin === true, 'ADMIN_EMAILS : le compte administrateur est reconnu une fois l’adresse confirmée');
   const queue = await json(await adm('/v1/admin/verifications'));
   const fatouId0 = suj.merchant.id;
   check(queue.data?.some((v) => v.id === fatouId0 && v.verification.legal_name === 'Boutique Fatou SUARL'), "L'administrateur voit la demande de Boutique Fatou");
@@ -302,6 +307,73 @@ try {
   check(g4.to?.startsWith('/login?erreur='), 'Google : état (state) falsifié refusé');
   const g5 = await google({ sub: 'g-z', email: 'z@gmail.com', aud: 'autre-client' });
   check(g5.to?.startsWith('/login?erreur='), 'Google : jeton destiné à une autre application refusé');
+  check(g3.to === '/login?erreur=google_email' && g4.to === '/login?erreur=google_expire', 'Erreurs Google : codes connus, jamais de texte libre dans l’adresse');
+
+  // ── Failles corrigées : attaques rejouées ─────────────────────────────────
+  // 1. Prise de contrôle : l'attaquant s'inscrit avec l'adresse de la victime, qui se connecte ensuite avec Google
+  const squat = await json(await browser()('/v1/auth/signup', { method: 'POST', body: { name: 'Boutique Victime', email: 'victime@gmail.com', password: 'pirate2026' } }));
+  const gv = await google({ sub: 'g-victime', email: 'victime@gmail.com', name: 'Victime' });
+  const pirate = await fetch(`${API}/v1/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'victime@gmail.com', password: 'pirate2026' }) });
+  check(gv.to === '/?connecte=1' && pirate.status === 401, 'Compte squatté puis réclamé avec Google : le mot de passe de l’attaquant ne marche plus');
+  check((await fetch(`${API}/v1/merchant`, { headers: { Authorization: `Bearer ${squat.secret_key}` } })).status === 401, 'Compte réclamé : la clé API de l’attaquant est révoquée');
+  const vme = (await json(await gv.jar('/v1/auth/me'))).merchant;
+  check(vme.google_linked && vme.email_verified && !vme.has_password, 'Compte réclamé : la vraie propriétaire y accède par Google, sans mot de passe hérité');
+
+  // 2. Mot de passe oublié (et réclamation d'un compte jamais confirmé)
+  const fg = await fetch(`${API}/v1/auth/forgot`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'aissatou@test.sn' }) });
+  const fgUnknown = await fetch(`${API}/v1/auth/forgot`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'personne@test.sn' }) });
+  check(fg.status === 200 && fgUnknown.status === 200, 'Mot de passe oublié : même réponse que le compte existe ou non');
+  await sleep(100);
+  const resetLink = serverLog.match(/à aissatou@test\.sn · « Réinitialisez[^\n]*\n\s+Lien : (\S+)/)?.[1];
+  const resetToken = resetLink && new URL(resetLink).searchParams.get('token');
+  const rs = (password) => fetch(`${API}/v1/auth/reset`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: resetToken, password }) });
+  check((await rs('dakar2027x')).status === 200, 'Lien de réinitialisation : nouveau mot de passe enregistré');
+  const relog = (password) => fetch(`${API}/v1/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'aissatou@test.sn', password }) });
+  check((await relog('dakar2027x')).status === 200 && (await relog('dakar2026')).status === 401, 'Après réinitialisation : le nouveau mot de passe marche, l’ancien non');
+  check((await rs('autre2027x')).status === 400, 'Lien de réinitialisation déjà utilisé : refusé');
+  check((await fetch(`${API}/v1/merchant`, { headers: { Authorization: `Bearer ${auto1.secret_key}` } })).status === 401, 'Compte jamais confirmé réclamé par e-mail : anciennes clés API révoquées');
+
+  // 3. Clé publique : prendre la référence d'une commande pour la « payer » 100 FCFA
+  const adb = new PgClient({ connectionString: DB });
+  await adb.connect();
+  const PK = { Authorization: 'Bearer pk_test_acs_demo_2026', 'Content-Type': 'application/json' };
+  const buy2 = await fetch(`${SHOP}/buy/grand-boubou`, { method: 'POST', redirect: 'manual' });
+  const order2Id = buy2.headers.get('location').split('/pay/')[1];
+  const order2 = await json(await fetch(`${API}/v1/checkouts/${order2Id}`, { headers: K }));
+  check(/^ACS-[0-9A-F]{10}$/.test(order2.reference), `Boutique : référence de commande imprévisible (${order2.reference})`);
+  await adb.query(`UPDATE checkouts SET status = 'expired', expires_at = now() - interval '1 minute' WHERE id = $1`, [order2Id]);
+  const steal = await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: PK, body: JSON.stringify({ amount: 100, reference: order2.reference }) });
+  check(steal.status === 409 && (await json(steal)).error.code === 'reference_taken', 'Clé publique : la référence d’une commande du marchand est refusée (409)');
+  const preRef = `ACS-PRE${Date.now()}`;
+  const pre = await json(await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: PK, body: JSON.stringify({ amount: 100, reference: preRef }) }));
+  const real = await json(await fetch(`${API}/v1/checkouts`, { method: 'POST', headers: K, body: JSON.stringify({ amount: 65000, reference: preRef }) }));
+  check(real.id !== pre.id && real.amount === 65000 && real.reference === preRef, 'Référence réservée par la clé publique : le serveur du marchand crée son propre paiement');
+  const preNow = await json(await fetch(`${API}/v1/checkouts/${pre.id}`, { headers: K }));
+  check(preNow.reference !== preRef, 'Le paiement de la clé publique perd la référence (il ne réglera aucune commande)');
+  const forgedHook = JSON.stringify({ id: 'evt_forge', type: 'checkout.paid', data: { id: pre.id, reference: order2.reference, amount: 100, currency: 'XOF', status: 'paid' } });
+  const ts = Math.floor(Date.now() / 1000);
+  await fetch(`${SHOP}/webhooks/yombalpay`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-YombalPay-Signature': `t=${ts},v1=${crypto.createHmac('sha256', 'whsec_acs_demo_2026').update(`${ts}.${forgedHook}`).digest('hex')}` },
+    body: forgedHook,
+  });
+  check((await json(await fetch(`${SHOP}/api/orders/${order2.reference}`))).status !== 'Payée', 'Boutique : un paiement d’un autre montant ne valide pas la commande');
+
+  // 4. metadata : visible du marchand, jamais sur la page publique
+  check(order2.metadata?.product === 'grand-boubou' && (await json(await fetch(`${API}/v1/checkouts/${order2Id}`))).metadata === undefined,
+    'metadata : lisible avec la clé secrète, absente de la vue publique');
+
+  // 5. Connexions temps réel plafonnées par adresse IP
+  const streams = [];
+  for (let i = 0; i < 20; i++) {
+    const ac = new AbortController();
+    const r = await fetch(`${API}/v1/checkouts/${order2Id}/stream`, { signal: ac.signal });
+    streams.push({ ac, status: r.status });
+  }
+  const over = await fetch(`${API}/v1/checkouts/${order2Id}/stream`);
+  check(streams.every((x) => x.status === 200) && over.status === 429, 'Temps réel : 20 connexions par IP, la 21e est refusée (429)');
+  streams.forEach((x) => x.ac.abort());
+  await adb.end();
 
   // ── Argent réel : réservé aux entreprises vérifiées ───────────────────────
   // Autres passerelles sur la même base, hors mode démo ; l'environnement vient du faux GET /api/whoami
@@ -332,7 +404,9 @@ try {
   const sbxTest = await bitnobCheckout('chk_sbx_test', 'lntb1000n1sandboxtest');
   const sbxReal = await bitnobCheckout('chk_sbx_real', 'lnbc1000n1realinvoice');
   const sbxOff = await bitnobCheckout('chk_sbx_off', 'lntb1000n1sandboxoff');
-  const simulateOn = (port, id) => fetch(`http://localhost:${port}/v1/checkouts/${id}/simulate-payment`, { method: 'POST' });
+  // Par défaut avec la clé du marchand propriétaire (Awa) ; key = null : visiteur anonyme
+  const simulateOn = (port, id, key = gsj.secret_key) =>
+    fetch(`http://localhost:${port}/v1/checkouts/${id}/simulate-payment`, { method: 'POST', headers: key ? { Authorization: `Bearer ${key}` } : {} });
 
   const LIVE = 'http://localhost:3101';
   const live = await realGateway(3101, 'production');
@@ -355,7 +429,12 @@ try {
   const sandbox = await realGateway(3102, 'sandbox');
   const sbx = await fetch('http://localhost:3102/v1/checkouts', { method: 'POST', headers: awaKey, body: JSON.stringify({ amount: 5000 }) });
   check(sbx.status !== 403, `Bitnob sandbox (secret « prd: ») : entreprise non vérifiée, test autorisé (${sbx.status})`);
-  check((await json(await fetch(`http://localhost:3102/v1/checkouts/${sbxTest}`))).can_simulate === true, 'Sandbox + YOMBAL_TEST_HELPERS : bouton « Simuler le paiement » proposé');
+  check((await json(await fetch(`http://localhost:3102/v1/checkouts/${sbxTest}`, { headers: { Authorization: `Bearer ${gsj.secret_key}` } }))).can_simulate === true,
+    'Sandbox + YOMBAL_TEST_HELPERS : bouton « Simuler le paiement » proposé au marchand propriétaire');
+  check((await json(await fetch(`http://localhost:3102/v1/checkouts/${sbxTest}`))).can_simulate === false, 'Sandbox : pas de bouton « Simuler » pour un visiteur');
+  const anonSim = await simulateOn(3102, sbxTest, null);
+  check(anonSim.status === 403 && (await json(anonSim)).error.code === 'owner_only', 'Sandbox : un visiteur ne peut pas simuler le paiement d’un marchand (403)');
+  check((await simulateOn(3102, sbxTest, suj.secret_key)).status === 403, 'Sandbox : un autre marchand ne peut pas simuler ce paiement (403)');
   const sbxSim = await simulateOn(3102, sbxTest);
   const sbxSimj = await json(sbxSim);
   check(sbxSim.status === 200 && sbxSimj.checkout?.status === 'paid', 'Sandbox : facture de test simulée → « Payé »');
@@ -369,6 +448,29 @@ try {
   check((await simulateOn(3103, sbxOff)).status === 403, 'Sandbox sans YOMBAL_TEST_HELPERS : simulation refusée');
   sandboxOff.kill();
   await sdb.end();
+
+  // Code de retrait deviné par essais : 5 échecs en une heure bloquent les sorties d'argent
+  const awaMob = { Authorization: `Bearer ${awaMobile.token}`, 'Content-Type': 'application/json' };
+  const tryPayout = (password) =>
+    fetch(`${API}/v1/payouts`, { method: 'POST', headers: awaMob, body: JSON.stringify({ amount: 1000, network: 'wave', phone: '771234567', account_name: 'Awa Sarr', password }) });
+  const guesses = [];
+  for (const pin of ['1111', '1234', '0000', '2026', '4321']) guesses.push((await tryPayout(pin)).status);
+  const afterGuesses = await tryPayout('couture2026');
+  check(guesses.every((st) => st === 401) && afterGuesses.status === 429, 'Retraits : après 5 codes faux, bloqués 1 h même avec le bon mot de passe (429)');
+  check((await fetch(`${API}/v1/savings/unlock`, { method: 'POST', headers: awaMob, body: JSON.stringify({ password: 'couture2026' }) })).status === 429,
+    'Déblocage d’épargne bloqué aussi pendant cette heure');
+
+  // Compte démo en production : jamais avec les clés par défaut du code public
+  const prod = spawn('node', ['server/src/index.js'], {
+    env: { ...env, PORT: '3104', PUBLIC_URL: 'http://localhost:3104', NODE_ENV: 'production', SEED_DEMO: 'true', DEMO_MERCHANT_KEY: '', DEMO_MERCHANT_WEBHOOK_SECRET: '' },
+  });
+  procs.push(prod);
+  let prodLog = '';
+  prod.stdout.on('data', (d) => (prodLog += d));
+  prod.stderr.on('data', (d) => (prodLog += d));
+  for (let i = 0; i < 40 && !(await fetch('http://localhost:3104/v1/health').then((r) => r.ok, () => false)); i++) await sleep(250);
+  check(/Compte démo non créé/.test(prodLog) && !/Compte démo : /.test(prodLog), 'Production : compte démo refusé avec les clés par défaut du code public');
+  prod.kill();
 
   // ── Adresse Lightning (LNURL-pay) ─────────────────────────────────────────
   const lnp = await json(await fetch(`${API}/.well-known/lnurlp/fatou`));
@@ -546,6 +648,12 @@ try {
   }
   const headers = (await fetch(`${API}/`)).headers;
   check(/frame-ancestors 'none'/.test(headers.get('content-security-policy') || ''), 'En-têtes de sécurité : CSP + anti-clickjacking');
+
+  // Liens de paiement : chaque ouverture crée un paiement, débit limité par adresse IP (en dernier : consomme le quota)
+  const flood = await json(await fetch(`${API}/v1/payment-links`, { method: 'POST', headers: K, body: JSON.stringify({ amount: 1000, description: 'Test débit' }) }));
+  const codes = [];
+  for (let i = 0; i < 20; i++) codes.push((await fetch(flood.url, { redirect: 'manual' })).status);
+  check(codes.includes(302) && (await fetch(flood.url, { redirect: 'manual' })).status === 429, 'Lien de paiement : au-delà de 20 ouvertures en 10 min par IP, refusé (429)');
   const home = await (await fetch(`${API}/`)).text();
   const siteNav = await (await fetch(`${API}/site-nav.js`)).text();
   check(siteNav.includes('/logo-dark.png') && home.includes('src="/site-nav.js"') && home.includes('Ils encaissent avec YombalPay') && home.includes('src="/accueil.js"') && !/<script>/.test(home),

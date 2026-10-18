@@ -130,6 +130,24 @@ export async function merchantBySession(token) {
   );
 }
 
+// Compte rendu à la personne qui vient de prouver posséder l'adresse (Google, lien de réinitialisation).
+// S'il n'avait jamais été confirmé, quelqu'un d'autre a pu le créer avec cette adresse : tout ce qu'il a pu
+// mettre en place est effacé (mot de passe, code de retrait, sessions, clés, caissiers, webhook, compte de retrait).
+export async function reclaimAccount(merchantId, client) {
+  const m = await one('SELECT email_verified_at FROM merchants WHERE id = $1 FOR UPDATE', [merchantId], client);
+  if (!m || m.email_verified_at) return false;
+  await query(
+    `UPDATE merchants SET password_hash = NULL, payout_pin_hash = NULL, webhook_url = NULL, payout_network = NULL, payout_phone = NULL,
+       payout_name = NULL, auto_payout_enabled = false, webhook_secret = $2, publishable_key = $3 WHERE id = $1`,
+    [merchantId, `whsec_${randomToken(24)}`, `pk_${keyMode()}_${randomToken(18)}`],
+    client,
+  );
+  await query('DELETE FROM sessions WHERE merchant_id = $1', [merchantId], client);
+  await query('UPDATE api_keys SET revoked_at = now() WHERE merchant_id = $1 AND revoked_at IS NULL', [merchantId], client);
+  await query('UPDATE staff SET disabled_at = now() WHERE merchant_id = $1 AND disabled_at IS NULL', [merchantId], client);
+  return true;
+}
+
 export const destroySession = (token) => query('DELETE FROM sessions WHERE token_hash = $1', [sha256(token || '')]);
 export const destroyAllSessions = (merchantId) => query('DELETE FROM sessions WHERE merchant_id = $1', [merchantId]);
 
@@ -160,7 +178,7 @@ export function merchantView(m) {
     google_linked: Boolean(m.google_sub),
     verification: { status: m.verification_status, note: m.verification_note },
     real_money: realMoney(),
-    is_admin: !m.staff_id && config.adminEmails.includes(String(m.email).toLowerCase()),
+    is_admin: Boolean(!m.staff_id && m.email_verified_at && config.adminEmails.includes(String(m.email).toLowerCase())),
     created_at: m.created_at,
   };
 }

@@ -16,6 +16,7 @@ import { createCheckout, startPoller } from './lib/payments.js';
 import { bitnob } from './lib/bitnob.js';
 import { watchLanIp } from './lib/lan.js';
 import { seedDemo } from './seed.js';
+import { rateLimit } from './lib/security.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const webDist = path.resolve(here, '../../web/dist');
@@ -63,7 +64,8 @@ app.use('/v1', api);
 app.use(lnurlRouter);
 
 // Lien de paiement partageable : crée un paiement à la volée puis redirige vers la page hébergée
-app.get('/l/:slug', async (req, res) => {
+// Chaque ouverture crée un paiement (et une facture Bitnob) : débit limité par adresse IP
+app.get('/l/:slug', rateLimit({ name: 'payment-link', limit: 20, windowMs: 600_000 }), async (req, res) => {
   try {
     const link = await one(
       `UPDATE payment_links SET uses = uses + 1 WHERE slug = $1 AND active RETURNING *, (SELECT row_to_json(m) FROM merchants m WHERE m.id = merchant_id) AS merchant`,
@@ -107,7 +109,7 @@ if (fs.existsSync(webDist)) {
   // Pages statiques : accueil (carte 3D, parcours, tarifs) et documentation, dans web/public/
   app.get('/', (_req, res) => res.sendFile(path.join(webDist, 'accueil.html')));
   app.get('/docs', (_req, res) => res.sendFile(path.join(webDist, 'docs.html')));
-  app.get(['/pay/:id', '/recu/:id', '/login', '/signup', '/app', '/app/*'], spa);
+  app.get(['/pay/:id', '/recu/:id', '/login', '/signup', '/forgot', '/reset', '/app', '/app/*'], spa);
   app.get(/^\/@[a-z0-9._-]+\/?$/i, spa);
 } else {
   app.get('/', (_req, res) =>

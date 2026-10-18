@@ -8,6 +8,7 @@ import { signToken, verifyToken } from '../lib/signed.js';
 import { confirmEmailToken, sendConfirmation } from '../lib/verification.js';
 import {
   availableUsername,
+  reclaimAccount,
   createApiKey,
   createMerchant,
   createSession,
@@ -21,7 +22,9 @@ import {
   merchantView,
   validateUsername,
 } from '../lib/merchants.js';
-import { audit, burnPasswordCheck, hashPassword, randomToken, rateLimit, verifyPassword } from '../lib/security.js';
+import { audit, burnPasswordCheck, hashPassword, randomToken, rateLimit, sha256, verifyPassword } from '../lib/security.js';
+import { sendMail } from '../lib/mailer.js';
+import { resetPasswordEmail } from '../lib/emails.js';
 import { query } from '../db/pool.js';
 
 export const authRouter = express.Router();
@@ -99,6 +102,55 @@ authRouter.post(
   },
 );
 
+// ── Mot de passe oublié ─────────────────────────────────────────────────────
+// Le jeton porte une empreinte du mot de passe actuel : il ne sert qu'une fois (le mot de passe change).
+const RESET_TTL_MS = 3_600_000;
+const passwordFingerprint = (m) => sha256(`${m.id}:${m.password_hash || 'aucun'}`).slice(0, 24);
+
+authRouter.post(
+  '/forgot',
+  rateLimit({ name: 'forgot-ip', limit: 10, windowMs: 3_600_000 }),
+  rateLimit({ name: 'forgot-email', limit: 3, windowMs: 3_600_000, key: (req) => String(req.body?.email || '').toLowerCase() }),
+  async (req, res, next) => {
+    try {
+      const m = await merchantByEmail(String(req.body?.email || '').trim());
+      if (m) {
+        const token = signToken({ purpose: 'reset', id: m.id, fp: passwordFingerprint(m) }, RESET_TTL_MS);
+        sendMail({ to: m.email, ...resetPasswordEmail({ name: m.name, link: `${config.publicUrl}/reset?token=${encodeURIComponent(token)}` }) });
+        await audit(m.id, 'password_reset_requested', req);
+      }
+      // Même réponse que le compte existe ou non : la page ne révèle pas les adresses inscrites
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+authRouter.post('/reset', rateLimit({ name: 'reset', limit: 10, windowMs: 900_000 }), async (req, res, next) => {
+  try {
+    const data = verifyToken(req.body?.token);
+    const m = data?.purpose === 'reset' ? await one('SELECT * FROM merchants WHERE id = $1', [data.id]) : null;
+    if (!m || data.fp !== passwordFingerprint(m)) return fail(res, 400, 'invalid_token', 'Ce lien est invalide, expiré ou déjà utilisé. Demandez-en un nouveau.');
+    const pwErr = checkPassword(req.body?.password);
+    if (pwErr) return fail(res, 422, 'weak_password', pwErr);
+    const hash = await hashPassword(req.body.password);
+    const reclaimed = await tx(async (client) => {
+      // Le lien est arrivé dans la boîte mail : l'adresse appartient à cette personne
+      const r = await reclaimAccount(m.id, client);
+      await client.query('UPDATE merchants SET password_hash = $2, email_verified_at = COALESCE(email_verified_at, now()) WHERE id = $1', [m.id, hash]);
+      await client.query('DELETE FROM sessions WHERE merchant_id = $1', [m.id]);
+      return r;
+    });
+    // Journal après la transaction : il référence le compte, verrouillé pendant celle-ci
+    if (reclaimed) await audit(m.id, 'account_reclaimed', req, { via: 'reset' });
+    await audit(m.id, 'password_reset', req);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── Connexion avec Google ───────────────────────────────────────────────────
 const OAUTH_COOKIE = 'yp_oauth';
 const googleRedirectUri = () => `${config.publicUrl}/v1/auth/google/callback`;
@@ -106,10 +158,11 @@ const shortCookie = (res, name, value, ttlMs) =>
   res.cookie(name, value, { httpOnly: true, sameSite: 'lax', secure: config.security.cookieSecure, maxAge: ttlMs, path: '/v1/auth' });
 // Après connexion : la page d'accueil, qui fige l'historique pour que « Retour » n'y ramène pas Google
 const AFTER_LOGIN = '/?connecte=1';
-const loginError = (res, message) => res.redirect(303, `/login?erreur=${encodeURIComponent(message)}`);
+// Erreur affichée par la page de connexion : un code connu d'elle, jamais un texte libre (pas de faux message)
+const loginError = (res, code) => res.redirect(303, `/login?erreur=${code}`);
 
 authRouter.get('/google', (_req, res) => {
-  if (!googleEnabled()) return loginError(res, "La connexion avec Google n'est pas encore configurée.");
+  if (!googleEnabled()) return loginError(res, 'google_config');
   const state = randomToken(16);
   const nonce = randomToken(16);
   shortCookie(res, OAUTH_COOKIE, signToken({ purpose: 'oauth', state, nonce }, 10 * 60_000), 10 * 60_000);
@@ -119,24 +172,36 @@ authRouter.get('/google', (_req, res) => {
 authRouter.get('/google/callback', async (req, res, next) => {
   const pending = verifyToken(readCookie(req, OAUTH_COOKIE));
   res.clearCookie(OAUTH_COOKIE, { path: '/v1/auth' });
-  if (req.query.error) return loginError(res, 'Connexion Google annulée.');
-  if (pending?.purpose !== 'oauth' || !req.query.code || req.query.state !== pending.state) return loginError(res, 'La connexion Google a expiré. Réessayez.');
+  if (req.query.error) return loginError(res, 'google_annule');
+  if (pending?.purpose !== 'oauth' || !req.query.code || req.query.state !== pending.state) return loginError(res, 'google_expire');
   try {
     const profile = await googleProfileFromCode({ code: String(req.query.code), redirectUri: googleRedirectUri(), nonce: pending.nonce });
-    // Compte déjà lié à Google, ou compte existant avec la même adresse (vérifiée par Google) : on le lie
+    // Compte déjà lié à Google, ou compte existant avec la même adresse (vérifiée par Google) : on le lie.
+    // Compte jamais confirmé : Google prouve que l'adresse est à cette personne, tout réglage d'un éventuel
+    // squatteur est effacé (reclaimAccount) avant de lui ouvrir le compte.
     let m = await one('SELECT * FROM merchants WHERE google_sub = $1', [profile.sub]);
-    if (!m)
-      m = await one(
-        'UPDATE merchants SET google_sub = $2, email_verified_at = COALESCE(email_verified_at, now()) WHERE email = $1 AND google_sub IS NULL RETURNING *',
-        [profile.email, profile.sub],
-      );
+    if (!m) {
+      let reclaimed = false;
+      m = await tx(async (client) => {
+        const byEmail = await one('SELECT id FROM merchants WHERE email = $1 AND google_sub IS NULL', [profile.email], client);
+        if (!byEmail) return null;
+        reclaimed = await reclaimAccount(byEmail.id, client);
+        return one(
+          'UPDATE merchants SET google_sub = $2, email_verified_at = COALESCE(email_verified_at, now()) WHERE id = $1 RETURNING *',
+          [byEmail.id, profile.sub],
+          client,
+        );
+      });
+      // Journal après la transaction : il référence le compte, verrouillé pendant celle-ci
+      if (reclaimed) await audit(m.id, 'account_reclaimed', req, { via: 'google' });
+    }
     if (m) {
       const s = await createSession(m.id, req);
       setSessionCookie(res, s.token, s.expires);
       await audit(m.id, 'login_google', req);
       return res.redirect(303, AFTER_LOGIN);
     }
-    if (await staffByEmail(profile.email)) return loginError(res, 'Les caissiers se connectent avec leur e-mail et leur mot de passe.');
+    if (await staffByEmail(profile.email)) return loginError(res, 'caissier');
     // Nouveau marchand : compte créé tout de suite, au nom du profil Google (modifiable dans Réglages).
     // Pas de clé API d'office : le marchand en crée une dans « Développeurs » s'il intègre un site.
     const name = (profile.name || profile.email.split('@')[0]).trim().slice(0, 60);
@@ -146,7 +211,10 @@ authRouter.get('/google/callback', async (req, res, next) => {
     await audit(m.id, 'signup_google', req);
     res.redirect(303, AFTER_LOGIN);
   } catch (err) {
-    if (err instanceof GoogleAuthError) return loginError(res, err.message);
+    if (err instanceof GoogleAuthError) {
+      console.warn(`Connexion Google refusée : ${err.message}`);
+      return loginError(res, err.code);
+    }
     // Même compte créé au même instant par un double clic : on renvoie vers la connexion Google
     if (err.code === '23505') return res.redirect(303, '/v1/auth/google');
     next(err);
@@ -156,7 +224,10 @@ authRouter.get('/google/callback', async (req, res, next) => {
 authRouter.post(
   '/login',
   rateLimit({ name: 'login-ip', limit: 30, windowMs: 900_000 }),
-  rateLimit({ name: 'login-email', limit: 8, windowMs: 900_000, key: (req) => String(req.body?.email || '').toLowerCase() }),
+  // Par e-mail ET adresse IP : un inconnu qui se trompe exprès ne bloque que lui, pas le vrai propriétaire.
+  // Plafond large par e-mail seul : une attaque répartie sur beaucoup d'IP reste freinée.
+  rateLimit({ name: 'login-email-ip', limit: 8, windowMs: 900_000, key: (req) => `${String(req.body?.email || '').toLowerCase()}|${req.ip}` }),
+  rateLimit({ name: 'login-email', limit: 50, windowMs: 900_000, key: (req) => String(req.body?.email || '').toLowerCase() }),
   async (req, res, next) => {
     try {
       const { email, password } = req.body || {};

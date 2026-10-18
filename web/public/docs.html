@@ -160,12 +160,12 @@ X-API-Key: sk_…</code></pre>
         <tbody>
           <tr><td><code>amount</code> <span class="req">obligatoire</span></td><td>entier</td><td>Montant en FCFA, de 100 à 5 000 000.</td></tr>
           <tr><td><code>currency</code> <span class="opt">facultatif</span></td><td>texte</td><td><code>XOF</code> (franc CFA), seule devise acceptée.</td></tr>
-          <tr><td><code>reference</code> <span class="opt">facultatif</span></td><td>texte</td><td>Votre numéro de commande. Renvoyer la même référence redonne le même paiement : pas de doublon si votre site réessaie.</td></tr>
+          <tr><td><code>reference</code> <span class="opt">facultatif</span></td><td>texte</td><td>Votre numéro de commande. Renvoyer la même référence redonne le même paiement : pas de doublon si votre site réessaie. Avec une clé publique <code>pk_…</code>, une référence déjà utilisée par votre serveur est refusée (<code>409 reference_taken</code>).</td></tr>
           <tr><td><code>description</code> <span class="opt">facultatif</span></td><td>texte</td><td>Affichée au client sur la page de paiement (140 caractères).</td></tr>
           <tr><td><code>return_url</code> <span class="opt">facultatif</span></td><td>URL</td><td>Où renvoyer le client après le paiement (http ou https).</td></tr>
           <tr><td><code>webhook_url</code> <span class="opt">facultatif</span></td><td>URL</td><td>Où envoyer <code>checkout.paid</code> pour ce paiement. Clé secrète uniquement ; en production, https vers une adresse publique.</td></tr>
           <tr><td><code>customer_email</code> <span class="opt">facultatif</span></td><td>texte</td><td>E-mail du client, pour vos rapprochements.</td></tr>
-          <tr><td><code>metadata</code> <span class="opt">facultatif</span></td><td>objet</td><td>Vos données libres, renvoyées telles quelles.</td></tr>
+          <tr><td><code>metadata</code> <span class="opt">facultatif</span></td><td>objet</td><td>Vos données libres, renvoyées telles quelles dans les webhooks et avec votre clé secrète. Jamais visibles sur la page de paiement publique.</td></tr>
         </tbody>
       </table></div>
 
@@ -259,11 +259,13 @@ app.post("/hooks/yombalpay", express.raw({ type: "application/json" }), (req, re
   if (attendu !== v1 || Date.now() / 1000 - Number(t) > 300) return res.status(400).end();
 
   const event = JSON.parse(req.body);
-  if (event.type === "checkout.paid") {
-    <span class="c">// marquer la commande event.data.reference comme payée</span>
+  const commande = commandes[event.data?.reference];
+  if (event.type === "checkout.paid" &amp;&amp; commande &amp;&amp; event.data.id === commande.paiementId &amp;&amp; event.data.amount === commande.montant) {
+    <span class="c">// paiement de la bonne commande, du bon montant : marquer la commande comme payée</span>
   }
   res.json({ received: true });
 });</code></pre>
+      <p class="warn">Avant de livrer, comparez le paiement à votre commande : <code>data.amount</code> et <code>data.currency</code> doivent correspondre au montant de la commande, et <code>data.id</code> au paiement que vous avez créé pour elle. Une référence seule ne suffit pas.</p>
       <p>Répondez avec un code 2xx en moins de 10 secondes. Sinon, nous réessayons après 2 s, 5 s, 15 s, 30 s et 60 s. Chaque envoi est visible dans Développeurs, avec un bouton pour le renvoyer. Pour une sécurité maximale, relisez le paiement avec <code>GET /v1/checkouts/:id</code> avant de livrer.</p>
     </section>
 
@@ -272,7 +274,7 @@ app.post("/hooks/yombalpay", express.raw({ type: "application/json" }), (req, re
       <p>Deux façons de tester sans dépenser de vrais bitcoins :</p>
       <ul>
         <li><b>Mode démo</b> (passerelle sans clés Bitnob, ou <code>DEMO_MODE=true</code>) : les factures sont simulées. Sur la page de paiement, cliquez sur <b>Simuler le paiement</b>, ou appelez <code>POST /v1/checkouts/:id/simulate-payment</code>.</li>
-        <li><b>Bitnob sandbox</b> : les factures sont de vraies factures du réseau de test (elles commencent par <code>lntb</code>). Payez-les avec un portefeuille Lightning testnet. Le portefeuille sandbox de Bitnob ne sait pas payer de facture Lightning : pour simuler, mettez <code>YOMBAL_TEST_HELPERS=true</code> dans le <code>.env</code> de la passerelle, puis cliquez sur <b>Simuler le paiement (sandbox)</b> sur la page de paiement, ou appelez <code>POST /v1/checkouts/:id/simulate-payment</code>.</li>
+        <li><b>Bitnob sandbox</b> : les factures sont de vraies factures du réseau de test (elles commencent par <code>lntb</code>). Payez-les avec un portefeuille Lightning testnet. Le portefeuille sandbox de Bitnob ne sait pas payer de facture Lightning : pour simuler, mettez <code>YOMBAL_TEST_HELPERS=true</code> dans le <code>.env</code> de la passerelle, puis, connecté avec le compte du marchand, cliquez sur <b>Simuler le paiement (sandbox)</b> sur la page de paiement, ou appelez <code>POST /v1/checkouts/:id/simulate-payment</code> avec sa clé secrète.</li>
       </ul>
       <p>Le paiement passe à <code>paid</code> et votre webhook est envoyé, exactement comme en vrai.</p>
       <p class="warn">La simulation est refusée dès que Bitnob indique une clé de production, et pour toute facture réelle (<code>lnbc…</code>) : elle ne peut jamais créditer de l'argent qui n'a pas été payé.</p>

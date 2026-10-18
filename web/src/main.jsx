@@ -4,7 +4,7 @@ import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Pay from './pages/Pay.jsx';
 import PublicPay from './pages/PublicPay.jsx';
 import Recu from './pages/Recu.jsx';
-import { Login, Signup } from './pages/Auth.jsx';
+import { Forgot, Login, Reset, Signup } from './pages/Auth.jsx';
 import AppLayout, { MoreMenu } from './components/AppLayout.jsx';
 import Overview from './pages/app/Overview.jsx';
 import Caisse from './pages/app/Caisse.jsx';
@@ -30,6 +30,8 @@ function Shell() {
         <Route path="/recu/:id" element={<Recu />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot" element={<Forgot />} />
+        <Route path="/reset" element={<Reset />} />
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Overview />} />
           <Route path="caisse" element={<Caisse />} />

@@ -26,6 +26,7 @@ export default function Pay() {
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(false);
   const [simulating, setSimulating] = useState(false);
+  const [ownerSim, setOwnerSim] = useState(false);
   const [noWallet, setNoWallet] = useState(false);
   const [redirectIn, setRedirectIn] = useState(null);
   const [method, setMethod] = useState('ln');
@@ -38,6 +39,9 @@ export default function Pay() {
     api(`/v1/checkouts/${id}`)
       .then((data) => {
         setC(data);
+        // Facture sandbox : le serveur ne propose « Simuler » qu'au marchand propriétaire, au chargement
+        // (le flux temps réel renvoie la vue publique, sans cette autorisation)
+        setOwnerSim(Boolean(data.can_simulate && !data.demo));
         stop = live(`/v1/checkouts/${id}/stream`, (type, d) => type === 'status' && setC(d), {
           fallback: async () => setC(await api(`/v1/checkouts/${id}`)),
           intervalMs: 5000,
@@ -247,7 +251,7 @@ export default function Pay() {
                 </button>
               )}
               {/* Démo : Lightning ou USDT. Sandbox Bitnob (facture lntb…) : Lightning seulement */}
-              {c.can_simulate && (method === 'ln' || (c.demo && usdtStarted)) && (
+              {(c.can_simulate || (ownerSim && c.status === 'pending')) && (method === 'ln' || (c.demo && usdtStarted)) && (
                 <button className="btn demo" onClick={simulate} disabled={simulating}>
                   {simulating ? t.simulating : c.demo ? t.simulate : t.simulateSandbox}
                 </button>

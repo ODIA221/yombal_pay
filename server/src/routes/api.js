@@ -49,6 +49,18 @@ async function confirmWithdrawal(merchant, secret) {
 }
 const WRONG_SECRET = 'Code de retrait ou mot de passe incorrect.';
 
+// Après 5 échecs en une heure (retrait ou déblocage d'épargne), les sorties d'argent sont bloquées une heure :
+// un code à 4 chiffres ne peut plus être deviné par essais successifs (journal d'audit : vaut après redémarrage).
+const WITHDRAWAL_FAILURES = ['payout_password_failed', 'savings_unlock_password_failed'];
+async function withdrawalLocked(merchantId) {
+  const r = await one(
+    `SELECT count(*)::int AS n FROM audit_log WHERE merchant_id = $1 AND action = ANY($2) AND created_at > now() - interval '1 hour'`,
+    [merchantId, WITHDRAWAL_FAILURES],
+  );
+  return r.n >= 5;
+}
+const LOCKED = 'Trop d’essais de code ou de mot de passe : retraits et déblocage d’épargne bloqués pendant une heure.';
+
 // Les détails d'une erreur Bitnob (IP non autorisée, compte inactif…) restent dans les journaux du serveur
 // et dans l'espace du marchand. Le client final ne voit qu'un message simple.
 const PAYMENT_DOWN = 'Le paiement est momentanément indisponible. Réessayez dans quelques instants.';
@@ -96,7 +108,12 @@ api.post(
       return_url: body.return_url,
       customer_email: body.customer_email,
       metadata: body.metadata,
-      source: req.authVia === 'staff' ? 'pos' : req.authVia === 'session' ? (body.source === 'pos' ? 'pos' : 'dashboard') : 'api',
+      // « button » : clé publique (bouton navigateur), ses références ne recouvrent jamais celles du marchand
+      source:
+        req.authVia === 'staff' ? 'pos'
+        : req.authVia === 'session' ? (body.source === 'pos' ? 'pos' : 'dashboard')
+        : req.authVia === 'publishable_key' ? 'button'
+        : 'api',
       staff_id: req.staff?.id,
     };
     // Une clé publique ne peut pas rediriger les notifications
@@ -124,15 +141,15 @@ api.get('/checkouts/:id', optionalAuth, wrap(async (req, res) => {
   // Clé API d'un autre marchand : introuvable (isolation). Un marchand connecté dans son navigateur qui ouvre
   // la page de paiement d'un autre (pour payer, ou tester la boutique de démo) reçoit la vue publique.
   if (!c || (req.authVia === 'secret_key' && !own)) return fail(res, 404, 'not_found', 'Paiement introuvable.');
-  res.json(own ? privateCheckout(c) : publicCheckout(c));
+  // Bouton « Simuler » d'une facture sandbox : seulement pour le marchand propriétaire
+  res.json({ ...(own ? privateCheckout(c) : publicCheckout(c)), ...(own && !c.demo ? { can_simulate: canSimulate(c) } : {}) });
 }));
 
 // Flux temps réel du statut (page de paiement)
 api.get('/checkouts/:id/stream', wrap(async (req, res) => {
   const c = await getCheckout(req.params.id);
   if (!c) return fail(res, 404, 'not_found', 'Paiement introuvable.');
-  subscribe(`checkout:${c.id}`, req, res);
-  res.write(`event: status\ndata: ${JSON.stringify(publicCheckout(c))}\n\n`);
+  if (subscribe(`checkout:${c.id}`, req, res)) res.write(`event: status\ndata: ${JSON.stringify(publicCheckout(c))}\n\n`);
 }));
 
 // Vérification serveur à la demande (bouton « J'ai payé » / secours si le webhook n'arrive pas)
@@ -161,13 +178,15 @@ api.post('/checkouts/:id/usdt', rateLimit({ name: 'usdt-address', limit: 10, win
 }));
 
 // Mode démo : simule le webhook Bitnob (même chemin de code que le vrai webhook)
-api.post('/checkouts/:id/simulate-payment', wrap(async (req, res) => {
+api.post('/checkouts/:id/simulate-payment', optionalAuth, wrap(async (req, res) => {
   const c = await getCheckout(req.params.id);
   if (!c) return fail(res, 404, 'not_found', 'Paiement introuvable.');
   // Facture Bitnob : simulable seulement en sandbox confirmée, facture de test (lntb…) et YOMBAL_TEST_HELPERS=true.
   // Le portefeuille sandbox de Bitnob ne paie pas les factures Lightning : on confirme comme un vrai paiement
   // (registre, notification du site marchand, temps réel), sans passer par Bitnob.
   if (!c.demo) {
+    // Sinon, n'importe qui ayant le lien pourrait faire passer une commande d'un site marchand pour payée
+    if (c.merchant_id !== req.merchant?.id) return fail(res, 403, 'owner_only', 'Simulation réservée au marchand propriétaire du paiement (connecté).');
     if (!canSimulate(c)) {
       return config.demoMode
         ? fail(res, 403, 'live_checkout', 'Ce paiement est réel : il ne peut pas être simulé.')
@@ -444,6 +463,7 @@ api.post('/savings/deposit', sessionOnly, rateLimit({ name: 'savings', limit: 20
 
 // Débloquer l'épargne : mot de passe exigé, comme un retrait
 api.post('/savings/unlock', sessionOnly, rateLimit({ name: 'savings-unlock', limit: 10, windowMs: 600_000, key: (req) => req.merchant.id }), wrap(async (req, res) => {
+  if (await withdrawalLocked(req.merchant.id)) return fail(res, 429, 'too_many_attempts', LOCKED);
   if (!(await confirmWithdrawal(req.merchant, req.body?.password))) {
     await audit(req.merchant.id, 'savings_unlock_password_failed', req);
     return fail(res, 401, 'invalid_password', WRONG_SECRET);
@@ -467,6 +487,7 @@ api.get('/payouts/corridor', merchantOnly, wrap(async (_req, res) => res.json(aw
 // Retrait : session + confirmation par mot de passe (jamais par simple clé API)
 api.post('/payouts', sessionOnly, rateLimit({ name: 'payout', limit: 10, windowMs: 600_000, key: (req) => req.merchant.id }), wrap(async (req, res) => {
   const b = req.body || {};
+  if (await withdrawalLocked(req.merchant.id)) return fail(res, 429, 'too_many_attempts', LOCKED);
   if (!(await confirmWithdrawal(req.merchant, b.password))) {
     await audit(req.merchant.id, 'payout_password_failed', req);
     return fail(res, 401, 'invalid_password', WRONG_SECRET);

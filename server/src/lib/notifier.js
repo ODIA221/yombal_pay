@@ -5,7 +5,7 @@ import { one, query } from '../db/pool.js';
 import { newId } from './ids.js';
 import { publish } from './bus.js';
 import { assertSafeWebhookUrl } from './security.js';
-import { getCheckout, publicCheckout } from './payments.js';
+import { getCheckout, privateCheckout } from './payments.js';
 
 const RETRY_DELAYS_MS = [0, 2_000, 5_000, 15_000, 30_000, 60_000];
 
@@ -24,7 +24,7 @@ export async function notifyMerchant(checkout, type = 'checkout.paid') {
       `INSERT INTO deliveries (id, merchant_id, checkout_id, type, url) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [newId('dlv'), merchant.id, checkout.id, type, url],
     );
-    const event = { id: newId('evt'), type, created_at: new Date().toISOString(), data: publicCheckout(checkout) };
+    const event = { id: newId('evt'), type, created_at: new Date().toISOString(), data: privateCheckout(checkout) }; // le webhook va au seul marchand : vue complète, metadata comprise
     attempt(delivery, event, merchant.webhook_secret, 0);
   } catch (err) {
     console.error('Notification marchand :', err.message);
