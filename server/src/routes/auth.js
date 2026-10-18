@@ -7,6 +7,7 @@ import { GoogleAuthError, googleAuthUrl, googleEnabled, googleProfileFromCode } 
 import { signToken, verifyToken } from '../lib/signed.js';
 import { confirmEmailToken, sendConfirmation } from '../lib/verification.js';
 import {
+  availableUsername,
   createApiKey,
   createMerchant,
   createSession,
@@ -36,44 +37,37 @@ function checkPassword(p) {
   return null;
 }
 
-// Crée le compte (inscription par e-mail ou avec Google), ouvre la session et montre la clé secrète une seule fois
-async function openAccount(req, res, { name, email, password, username, phone, googleSub }) {
-  const shopName = String(name || '').trim().slice(0, 60);
-  if (shopName.length < 2) return fail(res, 422, 'invalid_name', 'Indiquez le nom de votre commerce.');
-  const u = validateUsername(username);
-  if (u.error) return fail(res, 422, 'invalid_username', u.error);
-  if (await emailTaken(email)) return fail(res, 409, 'email_taken', 'Un compte existe déjà avec cet e-mail.');
-  if (await merchantByUsername(u.value)) return fail(res, 409, 'username_taken', 'Cet identifiant est déjà pris.');
-
+authRouter.post('/signup', rateLimit({ name: 'signup', limit: 10, windowMs: 3_600_000 }), async (req, res, next) => {
   try {
+    const { name, email, password, username, phone } = req.body || {};
+    const shopName = String(name || '').trim().slice(0, 60);
+    if (shopName.length < 2) return fail(res, 422, 'invalid_name', 'Indiquez le nom de votre commerce.');
+    if (!EMAIL_RE.test(String(email || ''))) return fail(res, 422, 'invalid_email', 'Adresse e-mail invalide.');
+    const pwErr = checkPassword(password);
+    if (pwErr) return fail(res, 422, 'weak_password', pwErr);
+    // Identifiant facultatif (API) : sans lui, il est tiré du nom du commerce
+    let handle;
+    if (username) {
+      const u = validateUsername(username);
+      if (u.error) return fail(res, 422, 'invalid_username', u.error);
+      if (await merchantByUsername(u.value)) return fail(res, 409, 'username_taken', 'Cet identifiant est déjà pris.');
+      handle = u.value;
+    } else handle = await availableUsername(shopName);
+    if (await emailTaken(email)) return fail(res, 409, 'email_taken', 'Un compte existe déjà avec cet e-mail.');
+
     const { merchant, key } = await tx(async (client) => {
-      const m = await createMerchant({ name: shopName, email: String(email).trim(), password, username: u.value, phone, googleSub }, client);
+      const m = await createMerchant({ name: shopName, email: String(email).trim(), password, username: handle, phone }, client);
       const k = await createApiKey(m.id, 'Clé par défaut', {}, client);
       return { merchant: m, key: k };
     });
     const s = await createSession(merchant.id, req);
     setSessionCookie(res, s.token, s.expires);
-    await audit(merchant.id, googleSub ? 'signup_google' : 'signup', req);
-    // Adresse vérifiée par Google : pas de lien de confirmation à envoyer
-    if (googleSub) res.clearCookie(GOOGLE_PROFILE_COOKIE, { path: '/v1/auth' });
-    else sendConfirmation(merchant);
+    await audit(merchant.id, 'signup', req);
+    sendConfirmation(merchant);
     // La clé secrète n'est montrée qu'une seule fois
     res.status(201).json({ merchant: merchantView(merchant), secret_key: key.key });
   } catch (err) {
     if (err.code === '23505') return fail(res, 409, 'conflict', 'E-mail ou identifiant déjà utilisé.');
-    throw err;
-  }
-}
-
-authRouter.post('/signup', rateLimit({ name: 'signup', limit: 10, windowMs: 3_600_000 }), async (req, res, next) => {
-  try {
-    const { name, email, password, username, phone } = req.body || {};
-    if (String(name || '').trim().length < 2) return fail(res, 422, 'invalid_name', 'Indiquez le nom de votre commerce.');
-    if (!EMAIL_RE.test(String(email || ''))) return fail(res, 422, 'invalid_email', 'Adresse e-mail invalide.');
-    const pwErr = checkPassword(password);
-    if (pwErr) return fail(res, 422, 'weak_password', pwErr);
-    await openAccount(req, res, { name, email, password, username, phone });
-  } catch (err) {
     next(err);
   }
 });
@@ -107,7 +101,6 @@ authRouter.post(
 
 // ── Connexion avec Google ───────────────────────────────────────────────────
 const OAUTH_COOKIE = 'yp_oauth';
-const GOOGLE_PROFILE_COOKIE = 'yp_google';
 const googleRedirectUri = () => `${config.publicUrl}/v1/auth/google/callback`;
 const shortCookie = (res, name, value, ttlMs) =>
   res.cookie(name, value, { httpOnly: true, sameSite: 'lax', secure: config.security.cookieSecure, maxAge: ttlMs, path: '/v1/auth' });
@@ -142,33 +135,18 @@ authRouter.get('/google/callback', async (req, res, next) => {
       return res.redirect(303, '/app');
     }
     if (await staffByEmail(profile.email)) return loginError(res, 'Les caissiers se connectent avec leur e-mail et leur mot de passe.');
-    // Nouveau marchand : le profil Google est gardé 15 minutes, le temps de nommer son commerce
-    shortCookie(res, GOOGLE_PROFILE_COOKIE, signToken({ purpose: 'google_signup', ...profile }, 15 * 60_000), 15 * 60_000);
-    res.redirect(303, '/signup?google=1');
+    // Nouveau marchand : compte créé tout de suite, au nom du profil Google (modifiable dans Réglages).
+    // Pas de clé API d'office : le marchand en crée une dans « Développeurs » s'il intègre un site.
+    const name = (profile.name || profile.email.split('@')[0]).trim().slice(0, 60);
+    m = await createMerchant({ name, email: profile.email, username: await availableUsername(name), googleSub: profile.sub });
+    const s = await createSession(m.id, req);
+    setSessionCookie(res, s.token, s.expires);
+    await audit(m.id, 'signup_google', req);
+    res.redirect(303, '/app');
   } catch (err) {
     if (err instanceof GoogleAuthError) return loginError(res, err.message);
-    next(err);
-  }
-});
-
-const googleProfile = (req) => {
-  const p = verifyToken(readCookie(req, GOOGLE_PROFILE_COOKIE));
-  return p?.purpose === 'google_signup' ? p : null;
-};
-
-authRouter.get('/google/pending', (req, res) => {
-  const p = googleProfile(req);
-  if (!p) return fail(res, 404, 'not_found', 'Aucune inscription Google en cours.');
-  res.json({ email: p.email, name: p.name });
-});
-
-authRouter.post('/google/signup', rateLimit({ name: 'signup', limit: 10, windowMs: 3_600_000 }), async (req, res, next) => {
-  try {
-    const p = googleProfile(req);
-    if (!p) return fail(res, 401, 'google_expired', 'La connexion Google a expiré. Recommencez.');
-    const { name, username, phone } = req.body || {};
-    await openAccount(req, res, { name, email: p.email, username, phone, googleSub: p.sub });
-  } catch (err) {
+    // Même compte créé au même instant par un double clic : on renvoie vers la connexion Google
+    if (err.code === '23505') return res.redirect(303, '/v1/auth/google');
     next(err);
   }
 });

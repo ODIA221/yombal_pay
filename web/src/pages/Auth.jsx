@@ -99,53 +99,24 @@ export function Login() {
   );
 }
 
-const slugify = (s) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '')
-    .slice(0, 24);
-
 export function Signup() {
   const { merchant, setMerchant } = useAuth();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const [f, setF] = useState({ name: '', username: '', email: '', password: '', phone: '' });
-  const [touchedUser, setTouchedUser] = useState(false);
+  // L'identifiant (adresse Lightning, page publique) est tiré du nom du commerce par le serveur
+  const [f, setF] = useState({ name: '', email: '', password: '', phone: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [secretKey, setSecretKey] = useState(null);
-  // Retour de Google pour un nouveau compte : il ne reste qu'à nommer le commerce
-  const googleMode = params.get('google') === '1';
-  const [google, setGoogle] = useState(null);
-
-  useEffect(() => {
-    if (!googleMode) return;
-    api('/v1/auth/google/pending').then(
-      (p) => {
-        setGoogle(p);
-        setF((x) => ({ ...x, email: p.email, name: x.name || p.name || '', username: x.username || slugify(p.name || '') }));
-      },
-      () => setError('La connexion Google a expiré. Recommencez.'),
-    );
-  }, [googleMode]);
 
   if (merchant && !secretKey) return <Navigate to="/app" replace />;
-  const set = (k) => (e) => {
-    const v = e.target.value;
-    setF((x) => ({ ...x, [k]: v, ...(k === 'name' && !touchedUser ? { username: slugify(v) } : {}) }));
-  };
-  const host = window.location.hostname;
+  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
 
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
     setError('');
     try {
-      const r = googleMode
-        ? await api('/v1/auth/google/signup', { method: 'POST', body: { name: f.name, username: f.username, phone: f.phone } })
-        : await api('/v1/auth/signup', { method: 'POST', body: f });
+      const r = await api('/v1/auth/signup', { method: 'POST', body: f });
       setSecretKey(r.secret_key);
       setMerchant(r.merchant);
     } catch (err) {
@@ -185,42 +156,21 @@ export function Signup() {
     );
 
   return (
-    <AuthShell
-      title={googleMode ? 'Nommez votre commerce' : 'Créer mon compte marchand'}
-      subtitle={googleMode ? `Compte Google : ${google?.email || '…'}` : 'Encaissez en Bitcoin du monde entier, recevez sur Wave ou Orange Money.'}
-    >
-      {!googleMode && <GoogleButton />}
+    <AuthShell title="Créer mon compte marchand" subtitle="Encaissez en Bitcoin du monde entier, recevez sur Wave ou Orange Money.">
+      <GoogleButton />
       <form className="stack" onSubmit={submit}>
         <Field label="Nom du commerce">
           <input required minLength={2} maxLength={60} value={f.name} onChange={set('name')} placeholder="Ex. Boutique Aïssatou" />
         </Field>
-        <Field label="Identifiant" hint={`Adresse Lightning : ${f.username || 'identifiant'}@${host}`}>
-          <div className="input-prefix">
-            <span>@</span>
-            <input
-              required
-              pattern="[a-z0-9][a-z0-9._\-]{1,28}[a-z0-9]"
-              value={f.username}
-              onChange={(e) => {
-                setTouchedUser(true);
-                setF((x) => ({ ...x, username: e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, '') }));
-              }}
-            />
-          </div>
+        <Field label="E-mail">
+          <input type="email" autoComplete="email" required value={f.email} onChange={set('email')} />
         </Field>
-        {!googleMode && (
-          <Field label="E-mail">
-            <input type="email" autoComplete="email" required value={f.email} onChange={set('email')} />
-          </Field>
-        )}
         <Field label="Téléphone (facultatif)">
           <input type="tel" autoComplete="tel" value={f.phone} onChange={set('phone')} placeholder="77 123 45 67" />
         </Field>
-        {!googleMode && (
-          <Field label="Mot de passe" hint="8 caractères minimum, avec au moins une lettre et un chiffre.">
-            <input type="password" autoComplete="new-password" required minLength={8} value={f.password} onChange={set('password')} />
-          </Field>
-        )}
+        <Field label="Mot de passe" hint="8 caractères minimum, avec au moins une lettre et un chiffre.">
+          <input type="password" autoComplete="new-password" required minLength={8} value={f.password} onChange={set('password')} />
+        </Field>
         {error && <p className="form-error">{error}</p>}
         <button className="btn primary lg wide" disabled={busy}>
           {busy ? 'Création…' : 'Créer mon compte'}

@@ -210,6 +210,9 @@ try {
   const suj = await json(su);
   check(su.status === 201 && suj.secret_key?.startsWith('sk_test_') && suj.merchant.lightning_address.startsWith('fatou@'), `Inscription → clé secrète affichée une fois, adresse ${suj.merchant?.lightning_address}`);
   check((await me('/v1/auth/signup', { method: 'POST', body: { name: 'Autre', username: 'fatou', email: 'autre@test.sn', password: 'dakar2026' } })).status === 409, 'Identifiant déjà pris refusé (409)');
+  const auto1 = await json(await browser()('/v1/auth/signup', { method: 'POST', body: { name: 'Couture Aïssatou', email: 'aissatou@test.sn', password: 'dakar2026' } }));
+  const auto2 = await json(await browser()('/v1/auth/signup', { method: 'POST', body: { name: 'Couture Aïssatou', email: 'aissatou2@test.sn', password: 'dakar2026' } }));
+  check(auto1.merchant?.username === 'coutureaissatou' && auto2.merchant?.username === 'coutureaissatou2', `Sans identifiant : tiré du nom du commerce (${auto1.merchant?.username}, ${auto2.merchant?.username})`);
 
   const stolen = await fetch(`${API}/v1/checkouts/${id}`, { headers: { Authorization: `Bearer ${suj.secret_key}` } });
   check(stolen.status === 404, "Un marchand ne voit pas les paiements d'un autre (isolation)");
@@ -250,7 +253,7 @@ try {
   check((await me('/v1/admin/verifications')).status === 403, "Un marchand n'accède pas à l'administration");
 
   const adm = browser();
-  await adm('/v1/auth/signup', { method: 'POST', body: { name: 'YombalPay Admin', username: 'admin-yp', email: 'admin@test.sn', password: 'admin2026x' } });
+  await adm('/v1/auth/signup', { method: 'POST', body: { name: 'YombalPay Admin', email: 'admin@test.sn', password: 'admin2026x' } });
   check((await json(await adm('/v1/auth/me'))).merchant.is_admin === true, 'ADMIN_EMAILS : le compte administrateur est reconnu');
   const queue = await json(await adm('/v1/admin/verifications'));
   const fatouId0 = suj.merchant.id;
@@ -277,16 +280,16 @@ try {
   };
   const g0 = await google({ sub: 'g-awa', email: 'awa@gmail.com', name: 'Awa Sarr' });
   check(g0.start.status === 303 && g0.auth.host === 'accounts.google.com' && g0.auth.searchParams.get('client_id') === GOOGLE_CLIENT_ID, 'Google : redirection vers accounts.google.com');
-  check(g0.to === '/signup?google=1', 'Nouveau compte Google → choix du nom du commerce');
-  check((await json(await g0.jar('/v1/auth/google/pending'))).email === 'awa@gmail.com', 'Profil Google gardé le temps de l’inscription');
-  const gs = await g0.jar('/v1/auth/google/signup', { method: 'POST', body: { name: 'Couture Awa', username: 'awa' } });
-  const gsj = await json(gs);
-  check(gs.status === 201 && gsj.secret_key?.startsWith('sk_') && gsj.merchant.email_verified && gsj.merchant.google_linked && !gsj.merchant.has_password, 'Inscription Google : e-mail déjà confirmé, sans mot de passe');
+  check(g0.to === '/app', 'Nouveau compte Google → directement sur l’accueil de l’espace marchand');
+  const gme = (await json(await g0.jar('/v1/auth/me'))).merchant;
+  check(gme?.name === 'Awa Sarr' && gme.username === 'awasarr' && gme.email_verified && gme.google_linked && !gme.has_password, 'Compte Google créé au nom du profil : e-mail déjà confirmé, sans mot de passe');
+  const gsj = { secret_key: (await json(await g0.jar('/v1/api-keys', { method: 'POST', body: { label: 'Site' } }))).key };
+  check(gsj.secret_key?.startsWith('sk_'), 'Compte Google : clé API créée depuis « Développeurs »');
   check((await g0.jar('/v1/checkouts', { method: 'POST', body: { amount: 3000 } })).status === 201, 'Compte Google : encaissement possible tout de suite');
   check((await g0.jar('/v1/auth/password', { method: 'POST', body: { new_password: 'couture2026' } })).status === 200, 'Compte Google : premier mot de passe choisi sans ancien mot de passe');
   check((await json(await g0.jar('/v1/auth/me'))).merchant.has_password === true, 'Le mot de passe protège désormais retraits et épargne');
   const g1 = await google({ sub: 'g-awa', email: 'awa@gmail.com' });
-  check(g1.to === '/app' && (await json(await g1.jar('/v1/auth/me'))).merchant.username === 'awa', 'Compte Google existant → connexion directe');
+  check(g1.to === '/app' && (await json(await g1.jar('/v1/auth/me'))).merchant.username === 'awasarr', 'Compte Google existant → connexion directe');
   const g2 = await google({ sub: 'g-fatou', email: 'fatou@test.sn' });
   check(g2.to === '/app' && (await json(await g2.jar('/v1/auth/me'))).merchant.google_linked === true, 'Même adresse qu’un compte existant → compte lié à Google');
   const g3 = await google({ sub: 'g-x', email: 'x@gmail.com', email_verified: false });

@@ -14,6 +14,23 @@ export function validateUsername(u) {
   return { value: v };
 }
 
+// Identifiant libre tiré du nom du commerce (« Boutique Aïssatou » → boutiqueaissatou, puis boutiqueaissatou2…) :
+// il sert à l'adresse Lightning et à la page publique, le marchand n'a pas à le choisir.
+export async function availableUsername(name) {
+  let base = String(name || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '')
+    .slice(0, 24);
+  if (base.length < 3 || RESERVED.has(base)) base = `boutique${base}`.slice(0, 24);
+  for (let i = 1; i <= 50; i++) {
+    const candidate = i === 1 ? base : `${base}${i}`;
+    if (!(await merchantByUsername(candidate))) return candidate;
+  }
+  return `${base}${randomToken(4).toLowerCase().replace(/[^a-z0-9]/g, '')}`.slice(0, 30);
+}
+
 export const keyMode = () => (config.demoMode ? 'test' : 'live');
 export const lightningAddress = (m) => `${m.username}@${config.publicHost.replace(/:\d+$/, '')}`;
 
