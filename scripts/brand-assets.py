@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = Image.open(ROOT / 'brand/logo.png').convert('RGBA')
 BG = (14, 15, 19, 255)          # --bg de l'application
 LIGHT = (236, 234, 228)         # --text : remplace le noir du logo sur fond sombre
+ORANGE = (247, 147, 26)         # --btc : couleur principale de l'application, remplace le jaune d'origine
 
 
 def trim(im, pad=0):
@@ -56,6 +57,20 @@ def width(im, w):
     return im.resize((w, round(im.height * w / im.width)), Image.LANCZOS)
 
 
+def to_orange(im):
+    # Le jaune du logo (et ses bords mêlés au noir) prend l'orange de l'application, à intensité égale
+    out = im.copy()
+    po = out.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b, a = po[x, y]
+            if a and r - b > 40:
+                t = min(1.0, r / 253)
+                po[x, y] = (round(ORANGE[0] * t), round(ORANGE[1] * t), round(ORANGE[2] * t), a)
+    return out
+
+
+SRC = to_orange(SRC)
 full = trim(SRC)
 full_dark = on_dark(full)
 mark = mark_only(SRC)
