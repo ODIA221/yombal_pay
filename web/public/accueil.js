@@ -1,36 +1,6 @@
-// Page d'accueil : navigation, carte 3D du Sénégal, démonstration du parcours, expérience développeur.
+// Page d'accueil (la barre de navigation est dans site-nav.js) : indicateur des sections, carte 3D du Sénégal, démonstration du parcours, expérience développeur.
 (function () {
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  /* ---------- Navigation ---------- */
-  var shell = document.getElementById("navShell");
-  var pops = {
-    solBtn: document.getElementById("mega"),
-    menuBtn: document.getElementById("sheet"),
-    devBtn: document.getElementById("devPop"),
-    meBtn: document.getElementById("mePop")
-  };
-  function closeAll(except) {
-    Object.keys(pops).forEach(function (id) {
-      if (id === except) return;
-      pops[id].hidden = true;
-      document.getElementById(id).setAttribute("aria-expanded", "false");
-    });
-  }
-  Object.keys(pops).forEach(function (id) {
-    var btn = document.getElementById(id);
-    btn.addEventListener("click", function (e) {
-      e.stopPropagation();
-      var open = pops[id].hidden;
-      closeAll(id);
-      pops[id].hidden = !open;
-      btn.setAttribute("aria-expanded", String(open));
-    });
-    pops[id].addEventListener("click", function (e) { if (e.target.closest("a")) closeAll(); else e.stopPropagation(); });
-  });
-  document.addEventListener("click", function () { closeAll(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeAll(); });
-  window.addEventListener("scroll", function () { shell.classList.toggle("scrolled", window.scrollY > 24); }, { passive: true });
 
   // Indicateur qui glisse sous le lien survolé ou la section visible
   var linksEl = document.getElementById("links"), ind = document.getElementById("indicator");
@@ -90,28 +60,6 @@
       history.pushState({ ypHome: true }, "", "/" + location.hash);
     } catch (e) {}
   }
-
-  /* ---------- Marchand connecté : avatar dans la barre ---------- */
-  fetch("/v1/auth/me", { cache: "no-store", credentials: "same-origin" })
-    .then(function (r) { return r.ok ? r.json() : null; })
-    .then(function (d) {
-      var me = d && d.merchant;
-      if (!me) return;
-      me.businessName = me.name;
-      var initial = (me.businessName || me.email || "Y").trim().charAt(0).toUpperCase();
-      ["meAvatar", "meAvatar2"].forEach(function (id) { document.getElementById(id).textContent = initial; });
-      document.getElementById("meName").textContent = me.businessName;
-      document.getElementById("meName2").textContent = me.businessName;
-      document.getElementById("meEmail").textContent = me.email;
-      document.querySelectorAll(".guest").forEach(function (el) { el.hidden = true; });
-      document.querySelectorAll(".member").forEach(function (el) { el.hidden = false; });
-      document.getElementById("meBtn").hidden = false;
-    })
-    .catch(function () {});
-  document.getElementById("logoutBtn").addEventListener("click", function () {
-    fetch("/v1/auth/logout", { method: "POST", credentials: "same-origin", headers: { "X-YombalPay-CSRF": "1" } })
-      .finally(function () { location.reload(); });
-  });
 
   /* ---------- Carte 3D du Sénégal ---------- */
   var SN = [[-16.71,13.59],[-17.13,14.37],[-17.63,14.73],[-17.19,14.92],[-16.70,15.62],[-16.46,16.14],[-16.12,16.46],[-15.62,16.37],[-15.14,16.59],[-14.58,16.60],[-14.10,16.30],[-13.44,16.04],[-12.83,15.30],[-12.17,14.62],[-12.12,13.99],[-11.93,13.42],[-11.55,13.14],[-11.47,12.75],[-11.51,12.44],[-11.66,12.39],[-12.20,12.47],[-12.28,12.35],[-12.50,12.33],[-13.22,12.58],[-13.70,12.59],[-15.55,12.63],[-15.82,12.52],[-16.15,12.55],[-16.68,12.38],[-16.84,13.15],[-15.93,13.13],[-15.69,13.27],[-15.51,13.28],[-15.14,13.51],[-14.71,13.30],[-14.28,13.28],[-13.84,13.51],[-14.05,13.79],[-14.38,13.63],[-14.69,13.63],[-15.08,13.88],[-15.40,13.86],[-15.62,13.62],[-16.71,13.59]];

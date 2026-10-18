@@ -23,27 +23,20 @@
   --green-text: #B45309;   /* orange lisible pour le texte sur fond clair */
   --on-green: #1A1206;     /* texte sur l'orange */
   --amber-soft: #FFF4D6; --amber: #7A5300;
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
   --display: "Unbounded", "Arial Black", system-ui, sans-serif;
   --body: "Figtree", "Segoe UI", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+html { scroll-behavior: smooth; scroll-padding-top: 100px; }
 body { margin: 0; background: var(--white); color: var(--ink); font: 16px/1.65 var(--body); }
 a { color: var(--green-text); }
 :focus-visible { outline: 2px solid var(--green-bright); outline-offset: 2px; }
-header { position: sticky; top: 0; z-index: 10; background: var(--ink); color: var(--white); }
-header .in { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 16px; padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left)); }
-.logo { display: flex; align-items: center; text-decoration: none; }
-.logo img { display: block; height: 40px; width: auto; }
-.tag { font: 600 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--grey-light); border: 1px solid var(--line-dark); padding: 4px 9px; border-radius: 999px; }
-header nav { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-header nav a { color: var(--grey-light); text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 10px; }
-header nav a:hover { color: var(--white); }
-header nav a.cta { background: var(--green); color: var(--on-green); border-radius: 999px; padding: 9px 16px; }
-.layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; padding: 32px max(16px, env(safe-area-inset-right)) 80px max(16px, env(safe-area-inset-left)); }
-aside { position: sticky; top: 88px; align-self: start; display: grid; gap: 4px; font-size: 14.5px; }
+.layout { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; padding: 32px var(--gutter-r) 80px var(--gutter-l); }
+aside { position: sticky; top: 100px; align-self: start; display: grid; gap: 4px; font-size: 14.5px; }
 aside .grp { font: 600 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--grey); margin: 14px 0 4px; }
 aside .grp:first-child { margin-top: 0; }
 aside a { color: var(--ink); text-decoration: none; padding: 6px 10px; border-radius: 8px; }
@@ -82,16 +75,14 @@ td:first-child { white-space: nowrap; }
 .tabs button { border: 0; background: var(--mist); color: var(--grey); font: 600 13px var(--mono); padding: 8px 12px; border-radius: 10px 10px 0 0; cursor: pointer; }
 .tabs button[aria-selected="true"] { background: var(--ink); color: var(--white); }
 .lang-help { font-size: 14.5px; color: var(--grey); }
-@media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 0; } aside { display: none; } header nav a:not(.cta) { display: none; } .tag { display: none; } }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 0; } aside { display: none; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style>
+<link rel="stylesheet" href="/site-nav.css">
 </head>
 <body>
-<header><div class="in">
-  <a class="logo" href="/"><img src="/logo-dark.png" alt="YombalPay" width="96" height="40"></a>
-  <span class="tag">Documentation</span>
-  <nav><a href="/">Accueil</a><a href="/app">Espace marchand</a><a class="cta" href="/signup">Créer un compte</a></nav>
-</div></header>
+<header class="nav-shell" id="navShell"></header>
+<script src="/site-nav.js"></script>
 
 <div class="layout">
   <aside aria-label="Sommaire">

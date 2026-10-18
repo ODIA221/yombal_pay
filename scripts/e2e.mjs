@@ -509,12 +509,14 @@ try {
   const headers = (await fetch(`${API}/`)).headers;
   check(/frame-ancestors 'none'/.test(headers.get('content-security-policy') || ''), 'En-têtes de sécurité : CSP + anti-clickjacking');
   const home = await (await fetch(`${API}/`)).text();
-  check(home.includes('/logo-dark.png') && home.includes('Ils encaissent avec YombalPay') && home.includes('src="/accueil.js"') && !/<script>/.test(home),
-    'Accueil : logo officiel, « Ils encaissent avec YombalPay », scripts servis par le site (CSP)');
+  const siteNav = await (await fetch(`${API}/site-nav.js`)).text();
+  check(siteNav.includes('/logo-dark.png') && home.includes('src="/site-nav.js"') && home.includes('Ils encaissent avec YombalPay') && home.includes('src="/accueil.js"') && !/<script>/.test(home),
+    'Accueil : barre avec logo officiel, « Ils encaissent avec YombalPay », scripts servis par le site (CSP)');
   check((await fetch(`${API}/boutique`, { redirect: 'manual' })).headers.get('location') === SHOP, '/boutique → boutique de démo');
   const docs = await (await fetch(`${API}/docs`)).text();
   check(docs.includes('X-YombalPay-Signature') && docs.includes('/v1/checkouts/:id/simulate-payment') && docs.includes('src="/docs.js"') && !/<script>/.test(docs),
     'Documentation : API de la passerelle (signature, routes), scripts servis par le site');
+  check(docs.includes('id="navShell"') && docs.includes('src="/site-nav.js"') && docs.includes('href="/site-nav.css"'), 'Documentation : même barre de navigation que l’accueil');
 } catch (e) {
   console.error(e);
   console.error(serverLog.slice(-2000));
