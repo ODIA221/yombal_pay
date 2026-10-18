@@ -73,7 +73,7 @@ export default function Wallet() {
           <button className="btn primary lg wide" onClick={() => setParams({ action: 'retrait' })}>
             <Icon name="out" /> Retirer vers mobile money
           </button>
-          <button className="btn ghost lg wide" onClick={() => setParams({ action: 'convertir' })} disabled={b.btc.sats < 1000}>
+          <button className="btn ghost lg wide" onClick={() => setParams({ action: 'convertir' })}>
             <Icon name="swap" /> Convertir BTC → USDT
           </button>
           {corridor && (
@@ -472,6 +472,7 @@ function ConvertModal({ balance, onClose, onDone }) {
           <span className="muted small">prix final confirmé par Bitnob</span>
         </div>
       </div>
+      {sats < 1000 && <p className="wallet-hint">{balance.btc.sats < 1000 ? 'Solde Bitcoin insuffisant : il faut au moins 1 000 sats pour convertir. En mode réel, seul l’argent réellement reçu compte (les ventes de démonstration sont exclues) : encaissez d’abord un paiement.' : 'Moins de 1 000 sats avec ce pourcentage : choisissez-en un plus élevé.'}</p>}
       {error && <p className="form-error">{error}</p>}
       <button
         className="btn primary lg wide"
