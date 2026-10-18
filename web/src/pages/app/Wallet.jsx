@@ -494,6 +494,8 @@ function ConvertModal({ balance, onClose, onDone }) {
   );
 }
 
+const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
+
 // Rapprochement comptable : chaque paiement, dépôt, retrait et conversion a les bonnes écritures dans le registre
 function Reconciliation() {
   const [r, setR] = useState(null);
@@ -530,8 +532,8 @@ function Reconciliation() {
       ) : (
         <>
           <p className="muted small">
-            {c.payments} paiements, {c.deposits} dépôts USDT, {c.payouts} retraits et {c.conversions} conversions comparés au registre : crédits, commissions,
-            débits et remboursements. Vérifié {dateTime(r.checked_at)}.
+            {plural(c.payments, 'paiement')}, {plural(c.deposits, 'dépôt')} USDT, {plural(c.payouts, 'retrait')} et {plural(c.conversions, 'conversion')} comparés au
+            registre : crédits, commissions, débits et remboursements. Vérifié {dateTime(r.checked_at)}.
           </p>
           {r.issues.length > 0 && (
             <ul className="issues">
