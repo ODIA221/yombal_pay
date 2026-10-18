@@ -124,6 +124,15 @@ Répondez honnêtement : aucun en production pour l'instant. Idéalement, faites
 **« La concurrence ? »**
 « PayDunya et Wave ne servent pas les clients étrangers et ne font pas de Bitcoin. BitPay et OpenNode ne versent ni FCFA ni mobile money. BTCPay demande un serveur et des compétences techniques. Personne ne combine encaissement mondial, prix en FCFA, protection en dollars et retrait Wave. »
 
+**« Et si 10 000 clients paient en même temps ? »**
+« La cohérence de l'argent ne dépend pas de la charge : elle est garantie par la base. Chaque débit passe sous un verrou par marchand, chaque paiement et chaque événement Bitnob ne peuvent être crédités qu'une fois (index uniques), le passage à "payé" est une seule opération atomique, et 44 contraintes en base servent de dernier rempart. Un rapprochement comptable vérifie chaque opération. Pour la performance, l'ordre est connu : cache Redis et pool de connexions PgBouncer, puis plusieurs serveurs sans état derrière un répartiteur (nos sessions sont déjà en base), une file de traitement pour les retraits, des réplicas en lecture, et le partitionnement par marchand seulement en dernier recours. Supabase et Render gèrent la haute disponibilité de la base. »
+
+**« Un même retrait peut-il partir deux fois si le réseau coupe ? »**
+« Non pour les paiements entrants : référence de commande unique, événement Bitnob traité une seule fois, crédit protégé par un index unique. Pour les retraits, chaque retrait a une référence unique chez Bitnob, exige le mot de passe et passe sous un verrou qui empêche de dépasser le solde. La prochaine amélioration prévue est une clé d'idempotence envoyée par l'application, pour qu'un renvoi après coupure retrouve le même retrait au lieu d'en créer un second. »
+
+**« Que se passe-t-il si le serveur redémarre pendant un paiement ? »**
+« Rien n'est perdu : l'état est en base, pas en mémoire. Un vérificateur interroge Bitnob toutes les 4 secondes pour les factures en attente, et le webhook Bitnob est rejoué jusqu'à succès. Un paiement ne peut pas être payé deux fois, ni crédité sans être payé : le rapprochement le prouve. »
+
 ## Les pièges à éviter
 
 - **Trop de fonctionnalités.** Le jury ne retiendra pas la liste. Montrez cinq moments, citez le reste en une phrase.
