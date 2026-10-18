@@ -10,18 +10,21 @@
 #   ./run.sh check      diagnostic de la connexion Bitnob (clés requises dans .env)
 #   ./run.sh reconcile  rapprochement comptable : registre ↔ opérations, puis plateforme ↔ compte Bitnob
 #   ./run.sh rebuild    force la reconstruction du front puis lance la démo
+#   ./run.sh pay <chk_…|facture>  paie une facture depuis le portefeuille Bitnob SANDBOX (test de bout en bout)
 set -euo pipefail
 
 cd "$(dirname "$0")"
-MODE="demo"
+MODE=""
 NO_MOBILE=0
+EXTRA=()
 for arg in "$@"; do
   case "$arg" in
     --no-mobile) NO_MOBILE=1 ;;
     --*) printf 'Option inconnue : %s\n' "$arg" >&2; exit 1 ;;
-    *) MODE="$arg" ;;
+    *) if [ -z "$MODE" ]; then MODE="$arg"; else EXTRA+=("$arg"); fi ;;
   esac
 done
+MODE="${MODE:-demo}"
 # « ./run.sh mobile » : ancien nom, l'application mobile fait maintenant partie de la démo
 [ "$MODE" = mobile ] && MODE=demo
 LOG_DIR=".run-logs"
@@ -264,6 +267,8 @@ case "$MODE" in
     node scripts/bitnob-check.mjs ;;
   reconcile)
     node scripts/reconcile.mjs ;;
+  pay)
+    node scripts/sandbox-pay.mjs "${EXTRA[@]:-}" ;;
   *)
-    sed -n '2,12p' "$0"; exit 1 ;;
+    sed -n '2,13p' "$0"; exit 1 ;;
 esac

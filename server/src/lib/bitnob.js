@@ -102,6 +102,8 @@ export const bitnob = {
 
   // GET /api/lightning/invoices/:id : status "paid" + preimage = preuve de paiement
   getInvoice: (id) => request('GET', `/api/lightning/invoices/${encodeURIComponent(id)}`),
+  // POST /api/lightning/pay : paie une facture depuis le portefeuille Bitnob (outil de test sandbox)
+  payInvoice: ({ request: invoice, reference, maxFee }) => request('POST', '/api/lightning/pay', { request: invoice, reference, ...(maxFee ? { max_fee: maxFee } : {}) }),
 
   // GET /api/exchange-rates?from=BTC&to=XOF
   getRate: (from, to) =>
