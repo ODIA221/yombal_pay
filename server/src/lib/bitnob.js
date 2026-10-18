@@ -29,6 +29,18 @@ export function signRequest(payload, { clientId, clientSecret, timestamp, nonce 
   };
 }
 
+// Bitnob n'accepte que les adresses IP déclarées dans son tableau de bord. Quand il refuse la nôtre, on donne
+// l'adresse publique exacte à ajouter (elle change souvent sur une connexion grand public).
+let publicIp = { value: null, at: 0 };
+async function currentPublicIp() {
+  if (publicIp.value && Date.now() - publicIp.at < 300_000) return publicIp.value;
+  try {
+    const r = await fetch('https://api.ipify.org', { signal: AbortSignal.timeout(3000) });
+    publicIp = { value: (await r.text()).trim(), at: Date.now() };
+  } catch {}
+  return publicIp.value;
+}
+
 async function request(method, path, body) {
   const payload = body === undefined ? '' : JSON.stringify(body);
   const headers = {
@@ -58,7 +70,13 @@ async function request(method, path, body) {
   }
 
   if (!res.ok || json?.success === false) {
-    const detail = json?.detail || json?.message || json?.error?.message || json?.title || text;
+    let detail = json?.detail || json?.message || json?.error?.message || json?.title || text;
+    if (/not whitelisted/i.test(detail)) {
+      const ip = await currentPublicIp();
+      detail += ip
+        ? ` : ajoutez l'adresse IP ${ip} dans le tableau de bord Bitnob (liste des IP autorisées)`
+        : ` : ajoutez l'adresse IP publique de ce serveur dans le tableau de bord Bitnob`;
+    }
     throw new BitnobError(`Bitnob ${res.status} sur ${path} : ${detail}`, {
       status: res.status,
       body: json,
