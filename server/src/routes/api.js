@@ -27,6 +27,7 @@ import { assertSafeWebhookUrl, audit, hashPassword, randomToken, rateLimit, veri
 import { processBitnobEvent } from './webhooks.js';
 import { depositAddress } from '../lib/stablecoins.js';
 import { saveXof, savingsView, unlock } from '../lib/savings.js';
+import { reconcileMerchant } from '../lib/reconciliation.js';
 
 export const api = express.Router();
 api.use(express.json({ limit: '100kb' }));
@@ -467,6 +468,9 @@ api.post('/webhook-secret/rotate', sessionOnly, wrap(async (req, res) => {
 api.get('/audit', sessionOnly, wrap(async (req, res) => {
   res.json({ data: await many('SELECT action, ip, meta, created_at FROM audit_log WHERE merchant_id = $1 ORDER BY id DESC LIMIT 50', [req.merchant.id]) });
 }));
+
+// Rapprochement comptable du marchand : registre ↔ paiements, dépôts, retraits, conversions
+api.get('/reconciliation', sessionOnly, wrap(async (req, res) => res.json(await reconcileMerchant(req.merchant.id))));
 
 // Diagnostic de la connexion Bitnob (utile le jour J)
 api.get('/bitnob/whoami', sessionOnly, wrap(async (_req, res) => {

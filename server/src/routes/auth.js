@@ -1,7 +1,7 @@
 // Comptes marchands : inscription, connexion, déconnexion, changement de mot de passe.
 import express from 'express';
 import { tx } from '../db/pool.js';
-import { authenticate, clearSessionCookie, setSessionCookie } from '../lib/auth.js';
+import { authenticate, clearSessionCookie, MOBILE_TOKEN_PREFIX, setSessionCookie } from '../lib/auth.js';
 import {
   createApiKey,
   createMerchant,
@@ -82,9 +82,14 @@ authRouter.post(
         return fail(res, 401, 'invalid_credentials', 'E-mail ou mot de passe incorrect.');
       }
       const s = await createSession(merchantId, req, st?.id ?? null);
-      setSessionCookie(res, s.token, s.expires);
-      await audit(merchantId, st ? 'staff_login' : 'login', req, st ? { staff: st.id, name: st.name } : {});
-      res.json({ merchant: merchantView(await merchantBySession(s.token)) });
+      // Application mobile : le jeton est rendu dans la réponse (gardé dans le stockage sécurisé du téléphone)
+      const mobile = req.body?.client === 'mobile';
+      if (!mobile) setSessionCookie(res, s.token, s.expires);
+      await audit(merchantId, st ? 'staff_login' : 'login', req, { ...(st ? { staff: st.id, name: st.name } : {}), ...(mobile ? { client: 'mobile' } : {}) });
+      res.json({
+        merchant: merchantView(await merchantBySession(s.token)),
+        ...(mobile ? { token: `${MOBILE_TOKEN_PREFIX}${s.token}`, expires_at: s.expires } : {}),
+      });
     } catch (err) {
       next(err);
     }
@@ -93,7 +98,7 @@ authRouter.post(
 
 authRouter.post('/logout', authenticate(['session', 'staff']), async (req, res) => {
   await destroySession(req.sessionToken);
-  clearSessionCookie(res);
+  if (!req.mobile) clearSessionCookie(res);
   res.json({ ok: true });
 });
 
@@ -110,8 +115,9 @@ authRouter.post('/password', authenticate(['session']), rateLimit({ name: 'pw', 
     // Déconnecte toutes les autres sessions, garde la session courante
     await destroyAllSessions(req.merchant.id);
     const s = await createSession(req.merchant.id, req);
-    setSessionCookie(res, s.token, s.expires);
     await audit(req.merchant.id, 'password_changed', req);
+    if (req.mobile) return res.json({ ok: true, token: `${MOBILE_TOKEN_PREFIX}${s.token}` });
+    setSessionCookie(res, s.token, s.expires);
     res.json({ ok: true });
   } catch (err) {
     next(err);

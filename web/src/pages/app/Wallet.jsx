@@ -181,6 +181,8 @@ export default function Wallet() {
         )}
       </section>
 
+      <Reconciliation />
+
       {action === 'retrait' && <PayoutModal balance={b} merchant={merchant} networks={payouts.networks} onClose={close} onDone={load} />}
       {action === 'convertir' && <ConvertModal balance={b} onClose={close} onDone={load} />}
     </div>
@@ -489,5 +491,59 @@ function ConvertModal({ balance, onClose, onDone }) {
         {busy ? 'Conversion…' : 'Convertir maintenant'}
       </button>
     </Modal>
+  );
+}
+
+// Rapprochement comptable : chaque paiement, dépôt, retrait et conversion a les bonnes écritures dans le registre
+function Reconciliation() {
+  const [r, setR] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const run = useCallback(async () => {
+    setBusy(true);
+    try {
+      setR(await api('/v1/reconciliation'));
+    } catch (e) {
+      setR({ error: e.message });
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+  useEffect(() => {
+    run();
+  }, [run]);
+  useLive((type) => ['balance', 'payout'].includes(type) && run());
+  if (!r) return null;
+  const c = r.checked;
+  return (
+    <section className="panel reconciliation">
+      <div className="panel-head">
+        <h2>
+          <Icon name="check" size={18} /> Rapprochement comptable{' '}
+          {!r.error && <span className={`pill ${r.ok ? 'ok' : 'bad'}`}>{r.ok ? 'Aucun écart' : `${r.errors} écart${r.errors > 1 ? 's' : ''}`}</span>}
+        </h2>
+        <button className="btn ghost sm" onClick={run} disabled={busy}>
+          <Icon name="refresh" size={16} /> Vérifier
+        </button>
+      </div>
+      {r.error ? (
+        <p className="form-error">{r.error}</p>
+      ) : (
+        <>
+          <p className="muted small">
+            {c.payments} paiements, {c.deposits} dépôts USDT, {c.payouts} retraits et {c.conversions} conversions comparés au registre : crédits, commissions,
+            débits et remboursements. Vérifié {dateTime(r.checked_at)}.
+          </p>
+          {r.issues.length > 0 && (
+            <ul className="issues">
+              {r.issues.map((i, k) => (
+                <li key={k} className={i.severity}>
+                  {i.severity === 'error' ? '❌' : '⚠️'} {i.message} <span className="mono muted small">{i.ref}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
   );
 }

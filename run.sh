@@ -6,6 +6,7 @@
 #   ./run.sh test     lance les tests de bout en bout (ports 3100/4100, base PostgreSQL locale yombal_pay_test)
 #   ./run.sh all      lance les tests puis la démo
 #   ./run.sh check    diagnostic de la connexion Bitnob (clés requises dans .env)
+#   ./run.sh reconcile  rapprochement comptable : registre ↔ opérations, puis plateforme ↔ compte Bitnob
 #   ./run.sh rebuild  force la reconstruction du front puis lance la démo
 set -euo pipefail
 
@@ -123,6 +124,8 @@ case "$MODE" in
     run_demo ;;
   check)
     node scripts/bitnob-check.mjs ;;
+  reconcile)
+    node scripts/reconcile.mjs ;;
   *)
-    sed -n '2,10p' "$0"; exit 1 ;;
+    sed -n '2,11p' "$0"; exit 1 ;;
 esac

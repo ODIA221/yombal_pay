@@ -40,9 +40,10 @@ Client (n'importe où) ── Lightning ou USDT ──▶ YombalPay ──▶ So
 
 ```bash
 ./run.sh           # installe tout, crée la base, construit le front, lance passerelle :3000 + boutique :4000
-./run.sh test      # 91 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
+./run.sh test      # 101 tests de bout en bout (base PostgreSQL locale « yombal_pay_test »)
 ./run.sh dev       # API rechargée à chaque modification + Vite :5173 + boutique
 ./run.sh check     # diagnostic de la connexion Bitnob
+./run.sh reconcile # rapprochement comptable : registre ↔ opérations, puis plateforme ↔ compte Bitnob
 ```
 
 **Sous Windows**, utilisez `run.bat` avec les mêmes commandes (`run.bat`, `run.bat test`, `run.bat dev`, `run.bat check`) dans l'invite de commandes ou PowerShell (`.\run.bat`). Le plus simple est d'utiliser Supabase (`DATABASE_URL`). Avec un PostgreSQL local, indiquez l'utilisateur et le mot de passe : `DATABASE_URL=postgres://postgres:<mot-de-passe>@localhost:5432/yombal_pay`, et pour les tests `TEST_DATABASE_URL=postgres://postgres:<mot-de-passe>@localhost:5432/yombal_pay_test`.

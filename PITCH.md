@@ -33,7 +33,7 @@ Tout passe par Bitnob : Lightning pour encaisser, Stablecoins pour l'USDT, Tradi
 ### 5. Pourquoi on peut nous faire confiance (3:35 à 4:20)
 « Ce n'est pas une maquette. C'est un vrai système de paiement.
 
-Le statut "payé" ne vient jamais du navigateur : il faut un webhook Bitnob signé, puis une deuxième vérification auprès de l'API Bitnob. Le solde est un vrai registre comptable, qu'on ne modifie jamais, on ajoute seulement des écritures. On a lancé cinq retraits en même temps sur le même solde : aucune double dépense. Un retrait exige le mot de passe, jamais une simple clé API. Et 91 tests automatiques vérifient tout ça à chaque modification. »
+Le statut "payé" ne vient jamais du navigateur : il faut un webhook Bitnob signé, puis une deuxième vérification auprès de l'API Bitnob. Le solde est un vrai registre comptable, qu'on ne modifie jamais, on ajoute seulement des écritures. On a lancé cinq retraits en même temps sur le même solde : aucune double dépense. Un retrait exige le mot de passe, jamais une simple clé API. Et 101 tests automatiques vérifient tout ça à chaque modification. »
 
 ### 6. Le modèle et la suite (4:20 à 5:00)
 « Notre modèle : 1 % par paiement. Moins cher qu'une carte bancaire ou qu'un transfert classique, et le client voit sur sa page combien de frais il évite.
