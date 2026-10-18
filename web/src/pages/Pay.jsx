@@ -26,6 +26,7 @@ export default function Pay() {
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(false);
   const [simulating, setSimulating] = useState(false);
+  const [noWallet, setNoWallet] = useState(false);
   const [redirectIn, setRedirectIn] = useState(null);
   const [method, setMethod] = useState('ln');
   const [chain, setChain] = useState(null);
@@ -132,6 +133,8 @@ export default function Pay() {
   const usdtStarted = c.usdt?.addresses?.length > 0;
   const expired = !usdtStarted && (c.status === 'expired' || (c.status === 'pending' && seconds === 0));
   const lightningUri = `lightning:${c.payment_request}`;
+  // Facture sandbox Bitnob (réseau de test) : lntb… / lntbs…
+  const testnet = /^lntb/i.test(c.payment_request || '');
 
   return (
     <div className="pay-shell">
@@ -220,11 +223,13 @@ export default function Pay() {
                   </span>
                 </div>
                 <div className="actions">
-                  <a className="btn primary" href={lightningUri}>
+                  <button type="button" className="btn primary" onClick={() => openWallet(lightningUri, c.payment_request, setNoWallet)}>
                     <Bolt /> {t.openWallet}
-                  </a>
+                  </button>
                   <CopyButton text={c.payment_request} label={t.copyInvoice} />
                 </div>
+                {noWallet && <p className="wallet-hint">{t.noWallet}</p>}
+                {testnet && <p className="wallet-hint">{t.testnetInvoice}</p>}
                 <details className="how">
                   <summary>{t.howTo}</summary>
                   <ol>
@@ -300,4 +305,21 @@ function UsdtPanel({ c, t, chain, onChain, busy, error }) {
       )}
     </div>
   );
+}
+
+// Ouvre le portefeuille Lightning de l'appareil. Si aucun n'est installé, le navigateur ne fait rien
+// (pas d'erreur visible) : sans perte de focus après 1,5 s, on copie la facture et on explique quoi faire.
+function openWallet(uri, invoice, onFail) {
+  let left = false;
+  const mark = () => (left = true);
+  window.addEventListener('blur', mark, { once: true });
+  document.addEventListener('visibilitychange', mark, { once: true });
+  window.location.href = uri;
+  setTimeout(() => {
+    window.removeEventListener('blur', mark);
+    document.removeEventListener('visibilitychange', mark);
+    if (left) return;
+    navigator.clipboard?.writeText(invoice).catch(() => {});
+    onFail(true);
+  }, 1500);
 }
