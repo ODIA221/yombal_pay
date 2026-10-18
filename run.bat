@@ -6,6 +6,7 @@ rem   run.bat dev      mode developpement : API en --watch (:3000) + Vite (:5173
 rem   run.bat test     lance les tests de bout en bout (ports 3100/4100, base PostgreSQL locale yombal_pay_test)
 rem   run.bat all      lance les tests puis la demo
 rem   run.bat check    diagnostic de la connexion Bitnob (cles requises dans .env)
+rem   run.bat reconcile  rapprochement comptable (registre, puis compte Bitnob)
 rem   run.bat rebuild  force la reconstruction du front puis lance la demo
 rem
 rem Ctrl+C arrete tous les processus lances.
@@ -16,7 +17,7 @@ cd /d "%~dp0"
 
 set "MODE=%~1"
 if "%MODE%"=="" set "MODE=demo"
-for %%m in (demo rebuild dev test all check) do if /i "%MODE%"=="%%m" goto :mode_ok
+for %%m in (demo rebuild dev test all check reconcile) do if /i "%MODE%"=="%%m" goto :mode_ok
 goto :usage
 :mode_ok
 
@@ -61,6 +62,7 @@ if /i "%MODE%"=="dev" goto :run_dev
 if /i "%MODE%"=="test" (call :build_web & goto :run_test)
 if /i "%MODE%"=="all" goto :run_all
 if /i "%MODE%"=="check" (node scripts\bitnob-check.mjs & exit /b)
+if /i "%MODE%"=="reconcile" (node scripts\reconcile.mjs & exit /b)
 
 :run_demo
 if not exist "web\dist\index.html" call :die "Le front n'a pas pu être construit." & exit /b 1
@@ -132,5 +134,5 @@ echo [ERREUR] %~1 1>&2
 exit /b 1
 
 :usage
-echo Usage : run.bat [demo ^| dev ^| test ^| all ^| check ^| rebuild]
+echo Usage : run.bat [demo ^| dev ^| test ^| all ^| check ^| reconcile ^| rebuild]
 exit /b 1

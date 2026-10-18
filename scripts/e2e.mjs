@@ -3,7 +3,11 @@
 // plus les garde-fous de sécurité (sessions, CSRF, clés, URL, double dépense).
 import { spawn } from 'node:child_process';
 import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 import { ensureDatabase } from './ensure-db.mjs';
+
+// pg est installé dans server/ (accès direct à la base pour simuler une écriture falsifiée)
+const { Client: PgClient } = createRequire(new URL('../server/package.json', import.meta.url))('pg');
 
 const API = 'http://localhost:3100';
 const SHOP = 'http://localhost:4100';
@@ -297,6 +301,33 @@ try {
   await sleep(1500);
   const autos = (await json(await me('/v1/payouts'))).data.filter((p) => p.trigger === 'auto');
   check(autos.length === 1 && autos[0].network === 'orange_money', `Paiement reçu → retrait automatique de ${autos[0]?.amount} FCFA vers Orange Money`);
+
+  // ── Rapprochement comptable ───────────────────────────────────────────────
+  const rec = await json(await me('/v1/reconciliation'));
+  check(rec.ok && rec.checked.payments >= 3 && rec.checked.payouts >= 2 && rec.checked.conversions >= 1, `Rapprochement Fatou : ${rec.checked.payments} paiements, ${rec.checked.payouts} retraits, ${rec.checked.conversions} conversions, aucun écart`);
+  check((await anon('/v1/reconciliation')).status === 401, 'Rapprochement réservé au marchand connecté');
+  const fatouId = (await json(await me('/v1/merchant'))).id;
+  const pend = await json(await anon('/v1/public/merchants/fatou/checkouts', { method: 'POST', body: { amount: 1500 } }));
+  const db = new PgClient({ connectionString: DB });
+  await db.connect();
+  await db.query(`INSERT INTO ledger_entries (merchant_id, asset, amount, type, checkout_id, description) VALUES ($1, 'BTC', 999999, 'payment', $2, 'Écriture falsifiée')`, [fatouId, pend.id]);
+  const tampered = await json(await me('/v1/reconciliation'));
+  check(!tampered.ok && tampered.issues.some((i) => i.code === 'credit_without_payment' && i.ref === pend.id), 'Écriture falsifiée (crédit sans paiement) détectée par le rapprochement');
+  await db.query(`DELETE FROM ledger_entries WHERE checkout_id = $1`, [pend.id]);
+  await db.end();
+  check((await json(await me('/v1/reconciliation'))).ok, 'Après correction : rapprochement de nouveau sans écart');
+
+  // ── Application mobile : jeton de session (Bearer ymb_…) ──────────────────
+  const ml = await fetch(`${API}/v1/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'fatou@test.sn', password: 'dakar2026', client: 'mobile' }) });
+  const mlj = await json(ml);
+  check(ml.status === 200 && mlj.token?.startsWith('ymb_') && !ml.headers.get('set-cookie'), 'Connexion mobile : jeton renvoyé, aucun cookie posé');
+  const mob = (path, opts = {}) => fetch(`${API}${path}`, { ...opts, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mlj.token}` }, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  check((await json(await mob('/v1/overview'))).merchant?.username === 'fatou', 'Jeton mobile : accès au tableau de bord');
+  check((await mob('/v1/payment-links', { method: 'POST', body: { amount: 2500, description: 'Depuis le mobile' } })).status === 201, 'Jeton mobile : écriture sans en-tête CSRF (pas de cookie, pas de risque CSRF)');
+  check((await mob('/v1/savings/unlock', { method: 'POST', body: { amount: 600, password: 'faux' } })).status === 401, 'Jeton mobile : les actions sensibles exigent toujours le mot de passe');
+  check((await fetch(`${API}/v1/overview`, { headers: { Authorization: 'Bearer ymb_jeton_invente' } })).status === 401, 'Jeton mobile inventé refusé');
+  await mob('/v1/auth/logout', { method: 'POST' });
+  check((await mob('/v1/auth/me')).status === 401, 'Déconnexion mobile : le jeton ne fonctionne plus');
 
   // ── Session ───────────────────────────────────────────────────────────────
   const login = browser();

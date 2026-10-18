@@ -490,6 +490,12 @@ td a { text-decoration: none; color: var(--text); }
 .secured .logo-mark { width: 18px; height: 18px; border-radius: 5px; }
 .secured .logo-mark svg { width: 11px; height: 11px; }
 
+/* Rapprochement comptable */
+.reconciliation h2 { display: flex; gap: 8px; align-items: center; }
+.issues { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.issues li { padding: 8px 12px; border-radius: 10px; background: var(--red-soft); }
+.issues li.warning { background: #f5b9461f; }
+
 /* Épargne */
 .goal { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; max-width: 420px; }
 .goal-bar { height: 10px; border-radius: 99px; background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; }

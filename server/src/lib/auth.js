@@ -1,8 +1,11 @@
-// Authentification : clé API (Bearer sk_… / pk_…) pour l'API, cookie de session HttpOnly pour le tableau de bord.
+// Authentification : clé API (Bearer sk_… / pk_…) pour l'API, cookie de session HttpOnly pour le tableau de bord,
+// jeton de session (Bearer ymb_…) pour l'application mobile.
 import { config } from '../config.js';
 import { merchantByKey, merchantBySession } from './merchants.js';
 
 export const SESSION_COOKIE = 'yp_session';
+// Préfixe des jetons de session remis à l'application mobile (même session que le cookie, transportée autrement)
+export const MOBILE_TOKEN_PREFIX = 'ymb_';
 
 export function readCookie(req, name) {
   const header = req.headers.cookie || '';
@@ -51,6 +54,12 @@ function csrfOk(req) {
 
 async function resolve(req) {
   const key = bearer(req);
+  if (key?.startsWith(MOBILE_TOKEN_PREFIX)) {
+    const token = key.slice(MOBILE_TOKEN_PREFIX.length);
+    const m = await merchantBySession(token);
+    // Jeton expiré ou révoqué : même réponse qu'une clé invalide (l'app mobile renvoie vers la connexion)
+    return m ? { merchant: m, via: m.staff_id ? 'staff' : 'session', token, mobile: true } : { invalidKey: true };
+  }
   if (key) {
     const found = await merchantByKey(key);
     return found ? { merchant: found.merchant, via: found.scope === 'secret' ? 'secret_key' : 'publishable_key' } : { invalidKey: true };
@@ -78,10 +87,12 @@ export const authenticate = (allow = ['session', 'secret_key']) => async (req, r
             : 'Cette action doit être faite depuis le tableau de bord connecté.';
       return fail(res, 403, 'forbidden', msg);
     }
-    if ((r.via === 'session' || r.via === 'staff') && !csrfOk(req)) return fail(res, 403, 'csrf', 'Requête refusée (protection CSRF).');
+    // Le CSRF ne concerne que le cookie (envoyé tout seul par le navigateur) ; un jeton Bearer ne l'est jamais
+    if ((r.via === 'session' || r.via === 'staff') && !r.mobile && !csrfOk(req)) return fail(res, 403, 'csrf', 'Requête refusée (protection CSRF).');
     req.merchant = r.merchant;
     req.authVia = r.via;
     req.sessionToken = r.token;
+    req.mobile = Boolean(r.mobile);
     req.staff = r.via === 'staff' ? { id: r.merchant.staff_id, name: r.merchant.staff_name } : null;
     next();
   } catch (err) {
