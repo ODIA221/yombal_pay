@@ -192,7 +192,8 @@ start_expo() {
     npm install --prefix mobile --no-audit --no-fund
   fi
   free_port 8081
-  (cd mobile && npx expo start --lan)
+  # Sans télémétrie : un processus de moins à chaque commande Expo
+  (cd mobile && EXPO_NO_TELEMETRY=1 npx expo start --lan)
 }
 
 run_demo() {
