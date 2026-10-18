@@ -29,8 +29,9 @@ export const config = {
     // Secret utilisé par Bitnob pour signer les webhooks (HMAC-SHA512, en-tête x-bitnob-signature)
     webhookSecret: process.env.BITNOB_WEBHOOK_SECRET || '',
     // Même ID client en sandbox et en production : c'est le secret qui choisit l'environnement.
-    // Un secret de production commence par « prd: » ; tout autre secret est traité comme sandbox.
-    keyEnv: !clientSecret ? 'none' : clientSecret.startsWith('prd:') ? 'production' : 'sandbox',
+    // Le préfixe du secret ne suffit pas (« prd: » existe aussi en sandbox) : l'environnement réel
+    // est celui que renvoie GET /api/whoami, affiché au démarrage et par « ./run.sh check ».
+    keyEnv: !clientSecret ? 'none' : 'configured',
   },
 
   // Mode démo : actif si DEMO_MODE=true OU si aucune clé Bitnob n'est fournie.
@@ -76,7 +77,7 @@ export const config = {
 
   // Paiement en stablecoins (USDT / USDC) : réseaux proposés au client (GET /api/stablecoins/supported-chains chez Bitnob)
   usdt: {
-    chains: (process.env.USDT_CHAINS || 'tron,bsc,polygon').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
+    chains: (process.env.USDT_CHAINS || 'polygon,solana').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
     // Bitnob refuse les dépôts de moins de 1 $ : on exige au moins 2 USDT
     minUsdt: Number(process.env.USDT_MIN) || 2,
     // Écart toléré entre le montant attendu et le montant reçu (frais de retrait de certaines plateformes)

@@ -7,11 +7,6 @@ if (cfg.bitnob.keyEnv === 'none') {
   process.exit(1);
 }
 console.log(`ℹ️  Adresse : ${cfg.bitnob.baseUrl}`);
-console.log(
-  cfg.bitnob.keyEnv === 'production'
-    ? '⚠️  Secret de PRODUCTION (prd:) : pour les tests, mettez le secret SANDBOX dans BITNOB_CLIENT_SECRET (l’ID client ne change pas)'
-    : 'ℹ️  Secret sandbox : environnement de test',
-);
 if (cfg.demoMode) console.log('ℹ️  DEMO_MODE=true : le serveur n’utilisera pas ces clés tant que DEMO_MODE n’est pas retiré du .env');
 
 const step = async (label, fn) => {
@@ -19,7 +14,9 @@ const step = async (label, fn) => {
   catch (e) { console.log(`❌ ${label} : ${e.message}`); }
 };
 
-await step('Authentification (GET /api/whoami)', () => bitnob.whoami());
+const me = await step('Authentification (GET /api/whoami)', () => bitnob.whoami());
+if (me?.environment === 'production') console.log(`⚠️  Environnement PRODUCTION (${me.client_name}) : argent réel. Pour les tests, utilisez le secret SANDBOX (même ID client).`);
+else if (me?.environment) console.log(`ℹ️  Environnement ${me.environment} (${me.client_name}) : aucun argent réel`);
 await step('Taux BTC/XOF', () => bitnob.getRate('BTC', 'XOF'));
 await step('Taux BTC/USDT', () => bitnob.getRate('BTC', 'USDT'));
 const inv = await step('Facture Lightning 1 000 sats', () =>

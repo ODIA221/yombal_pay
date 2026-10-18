@@ -6,7 +6,7 @@ import { fcfa, num } from '../lib/format.js';
 import { LangSwitch, useLang } from '../lib/i18n.jsx';
 import { Logo, QR, Spinner } from '../components/ui.jsx';
 
-const CHAINS = { tron: 'Tron', bsc: 'BNB Chain', polygon: 'Polygon', ethereum: 'Ethereum', solana: 'Solana', base: 'Base' };
+const CHAINS = { tron: 'Tron', bsc: 'BNB Chain', polygon: 'Polygon', ethereum: 'Ethereum', solana: 'Solana', optimism: 'Optimism', base: 'Base' };
 
 export default function Recu() {
   const { id } = useParams();

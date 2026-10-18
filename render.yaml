@@ -26,7 +26,7 @@ services:
       - key: BITNOB_WEBHOOK_SECRET
         sync: false
       - key: USDT_CHAINS # réseaux stablecoin proposés (vérifiés par ./run.sh check)
-        value: tron,bsc,polygon
+        value: polygon,solana
       - key: PAYOUT_MODE # « simulated » si le corridor SN n'est pas ouvert
         value: auto
       - key: DEMO_MERCHANT_EMAIL

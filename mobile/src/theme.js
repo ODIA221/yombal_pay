@@ -42,4 +42,4 @@ export const NETWORKS = [
   { id: 'expresso', label: 'Expresso', color: colors.expresso },
 ];
 
-export const CHAINS = { tron: 'Tron (TRC-20)', bsc: 'BNB Chain (BEP-20)', polygon: 'Polygon', ethereum: 'Ethereum', solana: 'Solana', base: 'Base' };
+export const CHAINS = { tron: 'Tron (TRC-20)', bsc: 'BNB Chain (BEP-20)', polygon: 'Polygon', ethereum: 'Ethereum', solana: 'Solana', optimism: 'Optimism', base: 'Base' };

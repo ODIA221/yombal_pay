@@ -11,6 +11,7 @@ import { authRouter } from './routes/auth.js';
 import { lnurlRouter } from './routes/lnurl.js';
 import { webhookRouter } from './routes/webhooks.js';
 import { createCheckout, startPoller } from './lib/payments.js';
+import { bitnob } from './lib/bitnob.js';
 import { watchLanIp } from './lib/lan.js';
 import { seedDemo } from './seed.js';
 
@@ -133,10 +134,16 @@ const server = app.listen(config.port, () => {
   console.log(`\n⚡ YombalPay sur ${config.publicUrl}  (port ${config.port})`);
   console.log(`   Mode : ${config.demoMode ? 'DÉMO (factures simulées)' : 'RÉEL, Bitnob ' + config.bitnob.baseUrl}  ·  retraits : ${config.payouts.mode}`);
   console.log(`   Webhook Bitnob à déclarer : ${config.publicUrl}/webhooks/bitnob`);
-  if (config.bitnob.keyEnv !== 'none')
-    console.log(`   Clé Bitnob : ${config.bitnob.keyEnv === 'production' ? 'PRODUCTION (prd:), argent réel' : 'sandbox (tests)'}  ·  ${config.bitnob.baseUrl}`);
-  if (!config.demoMode && config.bitnob.keyEnv === 'production')
-    console.warn('⚠️  Clé de PRODUCTION : paiements et retraits réels. Pour les tests, utilisez le secret sandbox (même ID client).');
+  // Environnement réel de la clé, tel que Bitnob le déclare (sandbox ou production)
+  if (!config.demoMode)
+    bitnob
+      .whoami()
+      .then((w) =>
+        w?.environment === 'production'
+          ? console.warn(`⚠️  Bitnob : clé de PRODUCTION (${w.client_name}) : paiements et retraits réels.`)
+          : console.log(`   Bitnob : environnement ${w?.environment ?? 'inconnu'} (${w?.client_name ?? 'compte'}), aucun argent réel en sandbox`),
+      )
+      .catch((e) => console.warn(`⚠️  Bitnob injoignable au démarrage : ${e.message}`));
   if (demo) console.log(`   Compte démo : ${demo.email}${demo.password ? ` / mot de passe généré : ${demo.password}` : ' (mot de passe du .env)'}  ·  clé API ${demo.apiKey}`);
   if (!config.demoMode && !config.bitnob.webhookSecret)
     console.warn(

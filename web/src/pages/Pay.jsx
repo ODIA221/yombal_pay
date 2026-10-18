@@ -12,6 +12,7 @@ const CHAINS = {
   polygon: 'Polygon',
   ethereum: 'Ethereum (ERC-20)',
   solana: 'Solana',
+  optimism: 'Optimism',
   base: 'Base',
   avalanche: 'Avalanche',
   optimism: 'Optimism',
