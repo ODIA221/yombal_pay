@@ -213,10 +213,13 @@ set "ENV_PUBLIC_URL="
 set "ENV_SHOP_URL="
 for /f "tokens=1,* delims==" %%a in ('findstr /b /c:"PUBLIC_URL=" .env 2^>nul') do set "ENV_PUBLIC_URL=%%b"
 for /f "tokens=1,* delims==" %%a in ('findstr /b /c:"SHOP_URL=" .env 2^>nul') do set "ENV_SHOP_URL=%%b"
+rem *_AUTO : la passerelle et la boutique suivent elles-memes l'IP si la connexion change pendant la demo
 set "PUBLIC_URL=http://%LAN_IP%:3000"
 set "SHOP_URL=http://%LAN_IP%:4000"
-if defined ENV_PUBLIC_URL echo %ENV_PUBLIC_URL% | findstr /i "localhost 127.0.0.1" >nul || set "PUBLIC_URL=%ENV_PUBLIC_URL%"
-if defined ENV_SHOP_URL echo %ENV_SHOP_URL% | findstr /i "localhost 127.0.0.1" >nul || set "SHOP_URL=%ENV_SHOP_URL%"
+set "PUBLIC_URL_AUTO=true"
+set "SHOP_URL_AUTO=true"
+if defined ENV_PUBLIC_URL echo %ENV_PUBLIC_URL% | findstr /i "localhost 127.0.0.1" >nul || (set "PUBLIC_URL=%ENV_PUBLIC_URL%" & set "PUBLIC_URL_AUTO=")
+if defined ENV_SHOP_URL echo %ENV_SHOP_URL% | findstr /i "localhost 127.0.0.1" >nul || (set "SHOP_URL=%ENV_SHOP_URL%" & set "SHOP_URL_AUTO=")
 (
   echo # Ecrit par run.bat ^(adresse de la passerelle vue par le telephone^)
   echo EXPO_PUBLIC_API_URL=http://%LAN_IP%:3000

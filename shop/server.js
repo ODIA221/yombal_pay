@@ -9,7 +9,12 @@ import YombalPay from '../sdk/index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.SHOP_PORT) || 4000;
-const SHOP_URL = (process.env.SHOP_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+let SHOP_URL = (process.env.SHOP_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+// SHOP_URL_AUTO=true : l'adresse de retour suit l'IP du réseau local (même logique que la passerelle)
+if (process.env.SHOP_URL_AUTO === 'true') {
+  const { watchLanIp } = await import('../server/src/lib/lan.js');
+  watchLanIp((ip) => (SHOP_URL = `http://${ip}:${PORT}`));
+}
 
 // ▶ YOMBALPAY, étape 1. Initialiser le SDK avec la clé secrète (côté serveur uniquement)
 const yombalpay = new YombalPay({
