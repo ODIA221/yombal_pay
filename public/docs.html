@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Documentation · YombalPay</title>
+<meta name="description" content="Documentation de l'API YombalPay : encaisser en Bitcoin Lightning avec des prix en FCFA.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Documentation : sommaire fixe à gauche, contenu lisible à droite, mêmes couleurs que le site. */
+:root {
+  --white: #FFFFFF; --mist: #F3F7F4; --line: #E1E8E3;
+  --ink: #0A0F0C; --ink-2: #141B17; --ink-3: #1D2620; --line-dark: #27322B;
+  --grey: #56635B; --grey-light: #97A69D;
+  --green: #8F6A00; --green-bright: #E2B341; --green-soft: #FBF3DC; --amber-soft: #FFF4D6; --amber: #7A5300;
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+body { margin: 0; background: var(--white); color: var(--ink); font: 16px/1.65 var(--body); }
+a { color: var(--green); }
+:focus-visible { outline: 2px solid var(--green-bright); outline-offset: 2px; }
+header { position: sticky; top: 0; z-index: 10; background: var(--ink); color: var(--white); }
+header .in { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 16px; padding: 12px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left)); }
+.logo { display: flex; align-items: center; gap: 10px; font: 800 15px var(--display); letter-spacing: .03em; text-decoration: none; color: var(--white); }
+.logo i { width: 30px; height: 30px; border-radius: 9px; background: var(--green); display: grid; place-items: center; font-style: normal; transform: rotate(-8deg); }
+.logo b { color: var(--green-bright); }
+.tag { font: 600 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--grey-light); border: 1px solid var(--line-dark); padding: 4px 9px; border-radius: 999px; }
+header nav { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+header nav a { color: var(--grey-light); text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 10px; }
+header nav a:hover { color: var(--white); }
+header nav a.cta { background: var(--green); color: var(--white); border-radius: 999px; padding: 9px 16px; }
+.layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; padding: 32px max(16px, env(safe-area-inset-right)) 80px max(16px, env(safe-area-inset-left)); }
+aside { position: sticky; top: 88px; align-self: start; display: grid; gap: 4px; font-size: 14.5px; }
+aside .grp { font: 600 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--grey); margin: 14px 0 4px; }
+aside .grp:first-child { margin-top: 0; }
+aside a { color: var(--ink); text-decoration: none; padding: 6px 10px; border-radius: 8px; }
+aside a:hover { background: var(--mist); }
+aside a.on { background: var(--green-soft); color: var(--green); font-weight: 600; }
+main { min-width: 0; max-width: 820px; }
+section { padding-bottom: 40px; margin-bottom: 40px; border-bottom: 1px solid var(--line); }
+section:last-child { border-bottom: 0; }
+h1 { font: 800 clamp(28px, 4vw, 40px)/1.15 var(--display); margin: 0 0 12px; }
+h2 { font: 700 clamp(22px, 3vw, 28px)/1.2 var(--display); margin: 0 0 14px; }
+h3 { font: 700 18px/1.3 var(--body); margin: 26px 0 10px; }
+p { margin: 0 0 14px; }
+.lead { font-size: 18px; color: var(--grey); }
+code { font: 500 .88em var(--mono); background: var(--mist); padding: 1px 6px; border-radius: 6px; }
+pre { margin: 0 0 16px; background: var(--ink); color: #DCE5DF; border-radius: 14px; padding: 16px 18px; overflow-x: auto; font: 500 13.5px/1.65 var(--mono); }
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+pre .c { color: #5F6E65; } pre .s { color: var(--green-bright); }
+.method { display: inline-block; font: 700 12px var(--mono); padding: 3px 8px; border-radius: 6px; margin-right: 8px; vertical-align: 2px; }
+.post { background: var(--green); color: var(--white); } .get { background: var(--ink); color: var(--white); }
+.endpoint { font: 600 15px var(--mono); }
+.table { overflow-x: auto; margin: 0 0 16px; border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 520px; }
+th { text-align: left; background: var(--mist); font: 600 11.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--grey); padding: 10px 14px; }
+td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+td:first-child { white-space: nowrap; }
+.req { font: 600 11px var(--mono); color: var(--green); }
+.opt { font: 600 11px var(--mono); color: var(--grey); }
+.note { background: var(--green-soft); border-radius: 12px; padding: 12px 16px; margin: 0 0 16px; font-size: 15px; }
+.warn { background: var(--amber-soft); color: var(--amber); border-radius: 12px; padding: 12px 16px; margin: 0 0 16px; font-size: 15px; }
+.steps { list-style: none; margin: 0 0 16px; padding: 0; counter-reset: s; display: grid; gap: 14px; }
+.steps li { display: grid; grid-template-columns: 32px 1fr; gap: 14px; }
+.steps li::before { counter-increment: s; content: counter(s); width: 30px; height: 30px; border-radius: 50%; background: var(--green); color: var(--white); display: grid; place-items: center; font: 700 14px var(--mono); }
+.steps li > div { min-width: 0; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: -6px; position: relative; z-index: 1; }
+.tabs button { border: 0; background: var(--mist); color: var(--grey); font: 600 13px var(--mono); padding: 8px 12px; border-radius: 10px 10px 0 0; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--white); }
+.lang-help { font-size: 14.5px; color: var(--grey); }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 0; } aside { display: none; } header nav a:not(.cta) { display: none; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<header><div class="in">
+  <a class="logo" href="/"><i>₿</i><span>YOMBAL<b>PAY</b></span></a>
+  <span class="tag">Documentation</span>
+  <nav><a href="/">Accueil</a><a href="/dashboard">Tableau de bord</a><a class="cta" href="/inscription">Créer un compte</a></nav>
+</div></header>
+
+<div class="layout">
+  <aside aria-label="Sommaire">
+    <span class="grp">Commencer</span>
+    <a href="#introduction">Introduction</a>
+    <a href="#demarrage">Démarrage rapide</a>
+    <a href="#sans-code">Encaisser sans site web</a>
+    <span class="grp">API</span>
+    <a href="#authentification">Authentification</a>
+    <a href="#api">Référence API</a>
+    <a href="#objet">L'objet paiement</a>
+    <a href="#erreurs">Erreurs</a>
+    <span class="grp">Aller plus loin</span>
+    <a href="#webhooks">Webhooks</a>
+    <a href="#mode-test">Mode test</a>
+    <a href="#exemples">Exemples par langage</a>
+  </aside>
+
+  <main>
+    <section id="introduction">
+      <h1>Documentation YombalPay</h1>
+      <p class="lead">YombalPay permet à un site ou à une boutique d'encaisser en Bitcoin (réseau Lightning) avec des prix en FCFA. Vous envoyez un montant en FCFA, nous créons la facture Lightning, votre client paie depuis n'importe quel pays, et nous vous prévenons dès que c'est payé.</p>
+      <p>Il y a deux façons d'utiliser YombalPay :</p>
+      <ul>
+        <li><b>Sans code</b> : depuis votre tableau de bord, vous créez une page de paiement et vous montrez son QR code au client. Voir <a href="#sans-code">Encaisser sans site web</a>.</li>
+        <li><b>Avec l'API</b> : votre site web crée les paiements automatiquement. C'est le reste de cette page.</li>
+      </ul>
+    </section>
+
+    <section id="demarrage">
+      <h2>Démarrage rapide</h2>
+      <p>Votre premier paiement test en cinq minutes.</p>
+      <ol class="steps">
+        <li><div><b>Créez un compte</b> sur <a href="/inscription">la page d'inscription</a>. Votre clé API secrète s'affiche une seule fois : copiez-la. Elle commence par <code>sk_test_</code>.</div></li>
+        <li><div><b>Créez un paiement</b> depuis votre serveur, en remplaçant <code>VOTRE_CLE</code> :
+<pre><code>curl https://api.yombalpay.sn/v1/checkouts \
+  -u <span class="s">VOTRE_CLE:</span> \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 5000, "currency": "XOF", "reference": "commande-1042"}'</code></pre>
+        La réponse contient une adresse <code>url</code> : c'est la page de paiement.</div></li>
+        <li><div><b>Envoyez votre client sur cette <code>url</code></b>. Il voit le montant en FCFA et en sats, et un QR code à scanner avec son portefeuille Lightning.</div></li>
+        <li><div><b>Soyez prévenu</b> : ajoutez <code>webhook_url</code> à votre requête, et YombalPay appellera cette adresse dès que le paiement est confirmé. Voir <a href="#webhooks">Webhooks</a>.</div></li>
+      </ol>
+      <p class="note">En local, remplacez <code>https://api.yombalpay.sn</code> par l'adresse de votre serveur YombalPay, par exemple <code>http://localhost:3000</code>. Votre tableau de bord l'affiche dans l'onglet Développeurs.</p>
+    </section>
+
+    <section id="sans-code">
+      <h2>Encaisser sans site web</h2>
+      <p>Pour une boutique physique ou une vente sur WhatsApp, pas besoin de développeur :</p>
+      <ol class="steps">
+        <li><div>Ouvrez votre <a href="/dashboard">tableau de bord</a> et cliquez sur <b>Encaisser</b>.</div></li>
+        <li><div>Tapez le montant en FCFA et une description, puis cliquez sur <b>Créer la page de paiement</b>.</div></li>
+        <li><div>Montrez le QR code à votre client, ou envoyez-lui l'adresse de la page. Le paiement apparaît dans votre tableau de bord dès qu'il est confirmé.</div></li>
+      </ol>
+    </section>
+
+    <section id="authentification">
+      <h2>Authentification</h2>
+      <p>Chaque requête porte votre clé secrète, d'une de ces deux façons :</p>
+<pre><code>Authorization: Bearer sk_test_…        <span class="c"># en-tête HTTP</span>
+curl -u sk_test_…: …                  <span class="c"># avec curl, la clé suivie de « : »</span></code></pre>
+      <p class="warn">La clé secrète reste sur votre serveur. Ne la mettez jamais dans le code de votre site web visible par les visiteurs, ni sur GitHub. Si elle a fuité, générez-en une nouvelle depuis le tableau de bord : l'ancienne cesse aussitôt de fonctionner.</p>
+    </section>
+
+    <section id="api">
+      <h2>Référence API</h2>
+      <p>Adresse de base : <code>https://api.yombalpay.sn/v1</code>. Les corps de requête et de réponse sont en JSON.</p>
+
+      <h3><span class="method post">POST</span><span class="endpoint">/v1/checkouts</span></h3>
+      <p>Crée un paiement. Le montant en sats est calculé au cours du moment et reste valable 15 minutes.</p>
+      <div class="table"><table>
+        <thead><tr><th>Champ</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>amount</code> <span class="req">obligatoire</span></td><td>entier</td><td>Montant en FCFA, au moins 50.</td></tr>
+          <tr><td><code>currency</code> <span class="opt">facultatif</span></td><td>texte</td><td><code>XOF</code> (franc CFA), seule devise acceptée pour l'instant.</td></tr>
+          <tr><td><code>reference</code> <span class="opt">facultatif</span></td><td>texte</td><td>Votre numéro de commande. Renvoyer la même référence redonne le même paiement : pas de doublon si votre site réessaie.</td></tr>
+          <tr><td><code>description</code> <span class="opt">facultatif</span></td><td>texte</td><td>Affichée au client sur la page de paiement.</td></tr>
+          <tr><td><code>return_url</code> <span class="opt">facultatif</span></td><td>URL</td><td>Où renvoyer le client après le paiement.</td></tr>
+          <tr><td><code>webhook_url</code> <span class="opt">facultatif</span></td><td>URL</td><td>Où envoyer la notification <code>checkout.paid</code>.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3><span class="method get">GET</span><span class="endpoint">/v1/checkouts/:id</span></h3>
+      <p>Renvoie un paiement. Son statut est vérifié auprès du réseau au moment de l'appel.</p>
+
+      <h3><span class="method get">GET</span><span class="endpoint">/v1/checkouts</span></h3>
+      <p>Renvoie vos 100 derniers paiements, du plus récent au plus ancien.</p>
+
+      <h3><span class="method post">POST</span><span class="endpoint">/v1/checkouts/:id/simulate_payment</span></h3>
+      <p>Mode test seulement : marque le paiement comme payé, comme si le client avait payé. Voir <a href="#mode-test">Mode test</a>.</p>
+    </section>
+
+    <section id="objet">
+      <h2>L'objet paiement</h2>
+<pre><code>{
+  "id": "chk_f81125f2a800b3ad",
+  "object": "checkout",
+  "status": "pending",
+  "amount": 5000,
+  "currency": "XOF",
+  "amount_sats": 10513,
+  "reference": "commande-1042",
+  "url": "https://pay.yombalpay.sn/pay/chk_f81125f2a800b3ad",
+  "lightning_invoice": "lntb105130n1p4…",
+  "created_at": "2026-10-18T10:42:03Z",
+  "expires_at": "2026-10-18T10:57:03Z",
+  "paid_at": null,
+  "livemode": false
+}</code></pre>
+      <div class="table"><table>
+        <thead><tr><th>Statut</th><th>Signification</th></tr></thead>
+        <tbody>
+          <tr><td><code>pending</code></td><td>En attente : le client n'a pas encore payé.</td></tr>
+          <tr><td><code>paid</code></td><td>Payé et confirmé. Vous pouvez livrer.</td></tr>
+          <tr><td><code>expired</code></td><td>La facture a dépassé ses 15 minutes sans paiement. Rien n'a été débité.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="erreurs">
+      <h2>Erreurs</h2>
+      <p>En cas d'erreur, la réponse contient un message en français :</p>
+<pre><code>{ "error": { "type": "invalid_request_error", "message": "amount doit être un entier en FCFA, au moins 50." } }</code></pre>
+      <div class="table"><table>
+        <thead><tr><th>Code HTTP</th><th>Type</th><th>Quand</th></tr></thead>
+        <tbody>
+          <tr><td>400</td><td><code>invalid_request_error</code></td><td>Donnée manquante ou invalide.</td></tr>
+          <tr><td>401</td><td><code>authentication_error</code></td><td>Clé absente ou invalide.</td></tr>
+          <tr><td>404</td><td><code>invalid_request_error</code></td><td>Paiement introuvable, ou il appartient à un autre compte.</td></tr>
+          <tr><td>502</td><td><code>provider_error</code></td><td>Le réseau de paiement ne répond pas. Réessayez.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="webhooks">
+      <h2>Webhooks</h2>
+      <p>Un webhook est un message que YombalPay envoie à votre serveur quand un paiement est confirmé. Votre site n'a pas besoin de demander le statut en boucle : c'est nous qui vous prévenons.</p>
+      <p>Si vous avez donné un <code>webhook_url</code>, nous y envoyons un <code>POST</code> :</p>
+<pre><code>{
+  "id": "evt_3c1e…",
+  "type": "checkout.paid",
+  "created_at": "2026-10-18T10:43:10Z",
+  "data": { "id": "chk_f81125f2a800b3ad", "status": "paid", "reference": "commande-1042", "amount": 5000, … }
+}</code></pre>
+      <h3>Vérifier que le message vient bien de YombalPay</h3>
+      <p>Chaque message porte un en-tête <code>Yombal-Signature: t=…,v1=…</code>. <code>v1</code> est le HMAC-SHA256 de <code>t + "." + corps</code> avec votre <b>secret de webhooks</b> (tableau de bord, onglet Développeurs). Refusez tout message dont la signature ne correspond pas.</p>
+<pre><code><span class="c">// Node.js avec Express</span>
+import crypto from "node:crypto";
+
+app.post("/hooks/yombalpay", express.raw({ type: "application/json" }), (req, res) => {
+  const { t, v1 } = Object.fromEntries(req.get("yombal-signature").split(",").map((p) => p.split("=")));
+  const attendu = crypto.createHmac("sha256", process.env.YOMBAL_WEBHOOK_SECRET)
+    .update(`${t}.${req.body}`).digest("hex");
+  if (attendu !== v1) return res.status(400).end();       <span class="c">// pas de YombalPay : on refuse</span>
+
+  const event = JSON.parse(req.body);
+  if (event.type === "checkout.paid") {
+    <span class="c">// marquer la commande event.data.reference comme payée</span>
+  }
+  res.json({ received: true });
+});</code></pre>
+      <p>Répondez avec un code 200. Sinon, nous réessayons jusqu'à 3 fois (après 2 s, 10 s et 30 s).</p>
+    </section>
+
+    <section id="mode-test">
+      <h2>Mode test</h2>
+      <p>Avec une clé <code>sk_test_</code>, les factures sont sur le réseau Bitcoin de test (elles commencent par <code>lntb</code>). Aucun vrai bitcoin n'est dépensé.</p>
+      <p>Pour simuler un paiement réussi sans portefeuille de test :</p>
+      <ul>
+        <li>sur la page de paiement, cliquez sur <b>Simuler le paiement (mode test)</b> ;</li>
+        <li>ou appelez <code>POST /v1/checkouts/:id/simulate_payment</code>.</li>
+      </ul>
+      <p>Le paiement passe à <code>paid</code> et votre webhook est envoyé, exactement comme en vrai.</p>
+    </section>
+
+    <section id="exemples">
+      <h2>Exemples par langage</h2>
+      <p class="lang-help">Votre site est écrit dans un langage de programmation. Choisissez le vôtre : c'est <b>la même requête</b> (« crée un paiement de 5 000 FCFA ») écrite de quatre façons. <b>cURL</b> se lance dans un terminal, pratique pour tester. <b>Node.js</b> (JavaScript), <b>Python</b> et <b>PHP</b> sont les langages les plus courants pour les sites web : WordPress, par exemple, est en PHP.</p>
+      <div class="tabs" role="tablist" aria-label="Langage">
+        <button role="tab" aria-selected="true" data-tab="curl" id="t-curl">cURL</button>
+        <button role="tab" aria-selected="false" data-tab="node" id="t-node">Node.js</button>
+        <button role="tab" aria-selected="false" data-tab="python" id="t-python">Python</button>
+        <button role="tab" aria-selected="false" data-tab="php" id="t-php">PHP</button>
+      </div>
+<pre id="ex-curl"><code>curl https://api.yombalpay.sn/v1/checkouts \
+  -u VOTRE_CLE: \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 5000, "currency": "XOF", "reference": "commande-1042"}'</code></pre>
+<pre id="ex-node" hidden><code>const res = await fetch("https://api.yombalpay.sn/v1/checkouts", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.YOMBAL_SECRET_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ amount: 5000, currency: "XOF", reference: "commande-1042" }),
+});
+const paiement = await res.json();
+<span class="c">// rediriger le client vers paiement.url</span></code></pre>
+<pre id="ex-python" hidden><code>import os, requests
+
+paiement = requests.post(
+    "https://api.yombalpay.sn/v1/checkouts",
+    auth=(os.environ["YOMBAL_SECRET_KEY"], ""),
+    json={"amount": 5000, "currency": "XOF", "reference": "commande-1042"},
+).json()
+
+<span class="c"># rediriger le client vers paiement["url"]</span></code></pre>
+<pre id="ex-php" hidden><code>$ch = curl_init('https://api.yombalpay.sn/v1/checkouts');
+curl_setopt_array($ch, [
+  CURLOPT_USERPWD        => getenv('YOMBAL_SECRET_KEY') . ':',
+  CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+  CURLOPT_POSTFIELDS     => json_encode(['amount' => 5000, 'currency' => 'XOF', 'reference' => 'commande-1042']),
+  CURLOPT_RETURNTRANSFER => true,
+]);
+$paiement = json_decode(curl_exec($ch), true);
+header('Location: ' . $paiement['url']);   <span class="c">// rediriger le client</span></code></pre>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  // Onglets des exemples
+  var tabs = document.querySelectorAll(".tabs button");
+  tabs.forEach(function (b) {
+    b.addEventListener("click", function () {
+      tabs.forEach(function (o) { o.setAttribute("aria-selected", String(o === b)); });
+      ["curl", "node", "python", "php"].forEach(function (k) { document.getElementById("ex-" + k).hidden = k !== b.dataset.tab; });
+    });
+  });
+  // Sommaire : surligne la section en cours de lecture
+  var links = {};
+  document.querySelectorAll("aside a").forEach(function (a) { links[a.getAttribute("href").slice(1)] = a; });
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        Object.keys(links).forEach(function (k) { links[k].classList.toggle("on", k === e.target.id); });
+      });
+    }, { rootMargin: "-20% 0px -70% 0px" });
+    document.querySelectorAll("main section").forEach(function (s) { io.observe(s); });
+  }
+})();
+</script>
+</body>
+</html>
