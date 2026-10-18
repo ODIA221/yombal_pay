@@ -88,7 +88,8 @@ start "" /b cmd /c "node server\src\index.js > .run-logs\server.log 2>&1"
 start "" /b cmd /c "node shop\server.js > .run-logs\shop.log 2>&1"
 for /l %%i in (1,1,40) do (
   curl -s -o nul --max-time 1 http://localhost:3000/v1/health && goto :servers_up
-  timeout /t 1 /nobreak >nul
+  rem pause d'une seconde (timeout echoue quand l'entree est redirigee)
+  ping -n 2 127.0.0.1 >nul
 )
 type ".run-logs\server.log"
 call :die "La passerelle n'a pas démarré (journal : .run-logs\server.log)." & exit /b 1
@@ -100,8 +101,12 @@ if not exist "mobile\node_modules" (
   call npm install --prefix mobile --no-audit --no-fund || call :die "Installation des dépendances de mobile impossible." || exit /b 1
 )
 call :free_port 8081
-cd mobile
+pushd mobile
 call npx expo start --lan
+popd
+rem Expo ferme : on arrete aussi la passerelle et la boutique lancees en arriere-plan
+call :free_port 3000
+call :free_port 4000
 exit /b
 
 :run_dev
@@ -150,12 +155,16 @@ exit /b 0
 :banner
 set "DEMO_EMAIL="
 set "DEMO_PASSWORD="
+set "DEMO_KEY=sk_test_acs_demo_2026"
 for /f "tokens=1,* delims==" %%a in ('findstr /b /c:"DEMO_MERCHANT_EMAIL=" .env 2^>nul') do set "DEMO_EMAIL=%%b"
 for /f "tokens=1,* delims==" %%a in ('findstr /b /c:"DEMO_MERCHANT_PASSWORD=" .env 2^>nul') do set "DEMO_PASSWORD=%%b"
+for /f "tokens=1,* delims==" %%a in ('findstr /b /c:"DEMO_MERCHANT_KEY=" .env 2^>nul') do set "DEMO_KEY=%%b"
 if not defined LAN_IP set "LAN_IP=localhost"
+set "RUN_MODE=RÉEL (Bitnob)"
+curl -s --max-time 2 http://localhost:3000/v1/health 2>nul | findstr /c:"demo" >nul && set "RUN_MODE=DÉMO (paiements simulés)"
 echo.
 echo ----------------------------------------------------------------
-echo  YombalPay est lancé
+echo  YombalPay est lancé · mode %RUN_MODE%
 echo.
 echo  Sur cet ordinateur
 echo    Espace marchand : http://localhost:3000/app
@@ -170,11 +179,14 @@ echo.
 echo  Compte marchand de démo
 echo    E-mail          : %DEMO_EMAIL%
 echo    Mot de passe    : %DEMO_PASSWORD%
+echo    Clé API         : %DEMO_KEY%
 echo.
+echo  Journaux : .run-logs\server.log · .run-logs\shop.log
 if defined NO_MOBILE (
   echo  Ctrl+C arrête tout.
 ) else (
   echo  Application mobile : ouvrez Expo Go sur le même Wi-Fi et scannez le QR ci-dessous.
+  echo  « w » ouvre la version web de l'application.
   echo  « Serveur injoignable » ? Autorisez Node dans le pare-feu Windows ^(réseau privé^).
   echo  Ctrl+C arrête Expo, la passerelle et la boutique.
 )
@@ -187,6 +199,11 @@ rem telephone joint la passerelle. Si .env pointe vers localhost, les liens (pai
 :configure_lan
 set "LAN_IP="
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up' } | Select-Object -First 1).IPv4Address.IPAddress" 2^>nul`) do set "LAN_IP=%%i"
+rem Secours sans PowerShell : premiere adresse IPv4 donnee par ipconfig (« Adresse IPv4 » / « IPv4 Address »)
+if not defined LAN_IP (
+  for /f "tokens=2 delims=:" %%i in ('ipconfig ^| findstr /c:"IPv4"') do if not defined LAN_IP set "LAN_IP=%%i"
+)
+if defined LAN_IP set "LAN_IP=%LAN_IP: =%"
 if not defined LAN_IP (
   echo [!] Aucune adresse IP locale : le test sur téléphone ne fonctionnera pas.
   set "LAN_IP=localhost"
