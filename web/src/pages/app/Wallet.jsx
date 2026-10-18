@@ -413,8 +413,11 @@ function PayoutModal({ balance, merchant, networks, onClose, onDone }) {
                   {f.account_name}, prélevé sur votre solde {f.source_asset}
                 </span>
               </div>
-              <Field label="Confirmez avec votre mot de passe" hint="Chaque retrait exige votre mot de passe.">
-                <input type="password" autoComplete="current-password" required autoFocus value={f.password} onChange={set('password')} />
+              <Field
+                label={merchant.has_payout_pin ? 'Confirmez avec votre code de retrait' : 'Confirmez avec votre mot de passe'}
+                hint={merchant.has_payout_pin ? 'Le code à 4-6 chiffres, ou à défaut votre mot de passe.' : 'Chaque retrait exige votre mot de passe. Définissez un code de retrait dans les Réglages pour aller plus vite.'}
+              >
+                <input type="password" autoComplete="current-password" inputMode={merchant.has_payout_pin ? 'numeric' : undefined} required autoFocus value={f.password} onChange={set('password')} />
               </Field>
             </>
           )}

@@ -249,3 +249,6 @@ ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS pocket text NOT NULL DEFAULT
 ALTER TABLE merchants ADD COLUMN IF NOT EXISTS savings_pct integer NOT NULL DEFAULT 0;
 ALTER TABLE merchants ADD COLUMN IF NOT EXISTS savings_goal_name text;
 ALTER TABLE merchants ADD COLUMN IF NOT EXISTS savings_goal_xof bigint;
+
+-- ── v6 : code de retrait (4 à 6 chiffres), accepté à la place du mot de passe pour retirer ou débloquer l'épargne ──
+ALTER TABLE merchants ADD COLUMN IF NOT EXISTS payout_pin_hash text;

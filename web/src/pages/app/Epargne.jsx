@@ -241,7 +241,7 @@ function UnlockModal({ max, onClose, onDone }) {
             <span>FCFA</span>
           </div>
         </Field>
-        <Field label="Mot de passe">
+        <Field label="Code de retrait ou mot de passe">
           <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
         {error && <p className="form-error">{error}</p>}

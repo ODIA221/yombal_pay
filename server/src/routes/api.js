@@ -37,6 +37,15 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).cat
 const merchantOnly = authenticate(['session', 'secret_key']);
 const sessionOnly = authenticate(['session']);
 
+// Sortie d'argent (retrait, déblocage d'épargne) : mot de passe du compte, ou code de retrait à 4-6 chiffres s'il est défini.
+// Un mot de passe contient toujours une lettre : une saisie uniquement en chiffres est donc forcément un code.
+async function confirmWithdrawal(merchant, secret) {
+  const s = String(secret || '');
+  if (/^\d{4,6}$/.test(s)) return Boolean(merchant.payout_pin_hash) && verifyPassword(s, merchant.payout_pin_hash);
+  return verifyPassword(s, merchant.password_hash);
+}
+const WRONG_SECRET = 'Code de retrait ou mot de passe incorrect.';
+
 // Les détails d'une erreur Bitnob (IP non autorisée, compte inactif…) restent dans les journaux du serveur
 // et dans l'espace du marchand. Le client final ne voit qu'un message simple.
 const PAYMENT_DOWN = 'Le paiement est momentanément indisponible. Réessayez dans quelques instants.';
@@ -277,6 +286,20 @@ api.patch('/merchant', sessionOnly, rateLimit({ name: 'merchant-update', limit: 
       set('payout_name', String(b.payout.name || '').trim().slice(0, 80) || req.merchant.name);
     }
   }
+  if (b.payout_pin !== undefined) {
+    // Définir ou retirer le code de retrait : toujours le mot de passe du compte (jamais l'ancien code)
+    if (!(await verifyPassword(String(b.password || ''), req.merchant.password_hash))) {
+      await audit(req.merchant.id, 'payout_pin_password_failed', req);
+      return fail(res, 401, 'invalid_password', 'Mot de passe incorrect.');
+    }
+    if (b.payout_pin === null || b.payout_pin === '') set('payout_pin_hash', null);
+    else {
+      const pin = String(b.payout_pin);
+      if (!/^\d{4,6}$/.test(pin)) return fail(res, 422, 'invalid_pin', 'Code de retrait : 4 à 6 chiffres.');
+      if (/^(\d)\1+$/.test(pin)) return fail(res, 422, 'invalid_pin', 'Code trop simple : évitez les chiffres tous identiques.');
+      set('payout_pin_hash', await hashPassword(pin));
+    }
+  }
   if (b.phone !== undefined) set('phone', String(b.phone || '').slice(0, 30) || null);
   if (b.auto_payout !== undefined) {
     const enabled = Boolean(b.auto_payout?.enabled);
@@ -293,9 +316,13 @@ api.patch('/merchant', sessionOnly, rateLimit({ name: 'merchant-update', limit: 
   }
   if (!sets.length) return res.json(merchantView(req.merchant));
   const m = await one(`UPDATE merchants SET ${sets.join(', ')} WHERE id = $1 RETURNING *`, vals);
-  const action = b.auto_payout !== undefined ? (m.auto_payout_enabled ? 'auto_payout_enabled' : 'auto_payout_disabled') : b.payout ? 'payout_account_changed' : 'settings_updated';
+  const action =
+    b.auto_payout !== undefined ? (m.auto_payout_enabled ? 'auto_payout_enabled' : 'auto_payout_disabled')
+    : b.payout ? 'payout_account_changed'
+    : b.payout_pin !== undefined ? (m.payout_pin_hash ? 'payout_pin_set' : 'payout_pin_removed')
+    : 'settings_updated';
   await audit(m.id, action, req, {
-    fields: Object.keys(b).filter((k) => k !== 'password'),
+    fields: Object.keys(b).filter((k) => k !== 'password' && k !== 'payout_pin'),
   });
   res.json(merchantView(m));
 }));
@@ -367,9 +394,9 @@ api.post('/savings/deposit', sessionOnly, rateLimit({ name: 'savings', limit: 20
 
 // Débloquer l'épargne : mot de passe exigé, comme un retrait
 api.post('/savings/unlock', sessionOnly, rateLimit({ name: 'savings-unlock', limit: 10, windowMs: 600_000, key: (req) => req.merchant.id }), wrap(async (req, res) => {
-  if (!(await verifyPassword(String(req.body?.password || ''), req.merchant.password_hash))) {
+  if (!(await confirmWithdrawal(req.merchant, req.body?.password))) {
     await audit(req.merchant.id, 'savings_unlock_password_failed', req);
-    return fail(res, 401, 'invalid_password', 'Mot de passe incorrect.');
+    return fail(res, 401, 'invalid_password', WRONG_SECRET);
   }
   try {
     await unlock(req.merchant, req.body?.amount);
@@ -390,9 +417,9 @@ api.get('/payouts/corridor', merchantOnly, wrap(async (_req, res) => res.json(aw
 // Retrait : session + confirmation par mot de passe (jamais par simple clé API)
 api.post('/payouts', sessionOnly, rateLimit({ name: 'payout', limit: 10, windowMs: 600_000, key: (req) => req.merchant.id }), wrap(async (req, res) => {
   const b = req.body || {};
-  if (!(await verifyPassword(String(b.password || ''), req.merchant.password_hash))) {
+  if (!(await confirmWithdrawal(req.merchant, b.password))) {
     await audit(req.merchant.id, 'payout_password_failed', req);
-    return fail(res, 401, 'invalid_password', 'Mot de passe incorrect.');
+    return fail(res, 401, 'invalid_password', WRONG_SECRET);
   }
   try {
     const p = await createPayout(req.merchant, {

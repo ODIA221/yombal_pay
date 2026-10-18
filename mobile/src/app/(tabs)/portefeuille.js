@@ -162,7 +162,7 @@ function PayoutSheet({ visible, onClose, onDone, balance, merchant }) {
       <Input label="Montant à recevoir" value={f.amount} onChangeText={set('amount')} keyboardType="number-pad" placeholder="2 000" suffix="FCFA" hint={`Disponible : ${fcfa(available)} · de 500 à 200 000 FCFA par retrait`} />
       <Input label="Numéro" value={f.phone} onChangeText={set('phone')} keyboardType="phone-pad" placeholder="77 123 45 67" hint="Numéro sénégalais, avec ou sans +221" />
       <Input label="Nom du titulaire" value={f.name} onChangeText={set('name')} placeholder="Aïssatou Ndiaye" />
-      <Input label="Mot de passe" value={f.password} onChangeText={set('password')} secureTextEntry placeholder="Chaque retrait exige votre mot de passe" />
+      <Input label="Code de retrait ou mot de passe" value={f.password} onChangeText={set('password')} secureTextEntry keyboardType={merchant?.has_payout_pin ? 'number-pad' : 'default'} placeholder="Chaque retrait doit être confirmé" />
       <ErrorText>{error}</ErrorText>
       <Button title={f.amount ? `Retirer ${fcfa(Number(f.amount))}` : 'Retirer'} icon="arrow-up" size="lg" onPress={submit} loading={busy} disabled={!f.amount || !f.phone || !f.password} />
     </Sheet>

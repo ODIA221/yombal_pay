@@ -129,6 +129,7 @@ export function merchantView(m) {
     mode: config.demoMode ? 'demo' : 'live',
     payout_mode: config.payouts.mode,
     auto_payout: { enabled: m.auto_payout_enabled, min_xof: m.auto_payout_min_xof },
+    has_payout_pin: Boolean(m.payout_pin_hash),
     staff: m.staff_id ? { id: m.staff_id, name: m.staff_name, email: m.staff_email, role: m.staff_role } : null,
     is_demo: m.is_demo,
     created_at: m.created_at,

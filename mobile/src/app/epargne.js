@@ -181,7 +181,7 @@ function UnlockSheet({ visible, max, onClose, onDone }) {
     <Sheet visible={visible} title="Débloquer l'épargne" onClose={onClose}>
       <T.Muted>L’argent revient dans votre solde disponible, en USDT, prêt à être retiré sur Wave ou Orange Money.</T.Muted>
       <Input label="Montant" value={amount} onChangeText={setAmount} keyboardType="number-pad" placeholder={`Vide = tout (${fcfa(max)})`} suffix="FCFA" />
-      <Input label="Mot de passe" value={password} onChangeText={setPassword} secureTextEntry placeholder="Obligatoire" />
+      <Input label="Code de retrait ou mot de passe" value={password} onChangeText={setPassword} secureTextEntry placeholder="Obligatoire" />
       <ErrorText>{error}</ErrorText>
       <Button title="Débloquer" icon="lock-open" size="lg" onPress={submit} loading={busy} disabled={!password} />
     </Sheet>
